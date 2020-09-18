@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ version.title }}</title>
+  <style type="text/css">
+  *{padding:0;margin:0;}
+  html{border-top:10px #1abf89 solid;}
+  body{width:800px;margin:0 auto;padding:5% 20px 20px;font-family:Palatino, Optima, Georgia, serif;}
+  @media all and (max-width:1024px){ body, pre a{width:60%;} }
+  small{color:#999;}
+  pre{white-space:pre-wrap;}
+
+  #toolbar{margin-bottom:1em;position:fixed;left:20px;margin-top:5px;}
+  #toolbar [class^="icon-"]:before, #toolbar [class*=" icon-"]:before{font-family:'pen'}
+  #mode{color:#1abf89;;cursor:pointer;}
+  #mode.disabled{color:#666;}
+  #mode:before{content: '\e813';}
+  #hinted{color:#1abf89;cursor:pointer;}
+  #hinted.disabled{color:#666;}
+  #hinted:before{content: '\e816';}
+  #tomd{color:#fff;border-radius:2px;line-height:1;padding:1px 3px 0; font-size:0.8em;background:#000;cursor:pointer;}
+
+  #fork{position:fixed;right:0;top:0;}
+  .hidden{display:none}
+  /*
+  When the webpage is printed
+  this media query hides extra elements,
+  and makes the text content fit the page.
+  */
+  @media print {
+    #fork, #toolbar {
+        display: none;
+    }
+    body {
+        width: 94%;
+        padding-top: 1em;
+        font-size: 12px;
+    }
+    html {
+        border-top: 0;
+    }
+  }
+  </style>
+  <link rel="stylesheet" href="/static/version/pen.css" />
+</head>
+<body onbeforeunload="save()" onunload="save()">
+
+<div id="toolbar">
+  <span id="mode" class="icon-mode"></span>
+  <span id="hinted" class="icon-pre disabled" title="Toggle Markdown Hints"></span>
+  <span id="tomd" title="to markdown">MD</span>
+  <span id="saved" class="hidden">SAVED</span>
+</div>
+
+<!-- <div id="custom-toolbar" class="pen-menu pen-menu" style="display: block; top: 20px; left: 10px;">
+  <i class="pen-icon icon-insertimage" data-action="insertimage"></i>
+  <i class="pen-icon icon-blockquote" data-action="blockquote"></i>
+  <i class="pen-icon icon-h2" data-action="h2"></i>
+  <i class="pen-icon icon-h3" data-action="h3"></i>
+  <i class="pen-icon icon-p active" data-action="p"></i>
+  <i class="pen-icon icon-code" data-action="code"></i>
+  <i class="pen-icon icon-insertorderedlist" data-action="insertorderedlist"></i>
+  <i class="pen-icon icon-insertunorderedlist" data-action="insertunorderedlist"></i>
+  <i class="pen-icon icon-inserthorizontalrule" data-action="inserthorizontalrule"></i>
+  <i class="pen-icon icon-indent" data-action="indent"></i>
+  <i class="pen-icon icon-outdent" data-action="outdent"></i>
+  <i class="pen-icon icon-bold" data-action="bold"></i>
+  <i class="pen-icon icon-italic" data-action="italic"></i>
+  <i class="pen-icon icon-underline" data-action="underline"></i>
+  <i class="pen-icon icon-createlink" data-action="createlink"></i>
+</div> -->
+
+<div id="content" data-toggle="pen" data-placeholder="im a placeholder">
+{{ content_html|safe }}
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="/static/version/pen.js"></script>
+<script src="/static/version/markdown.js"></script>
+<script type="text/javascript">
+
+
+  // config
+  var options = {
+    // toolbar: document.getElementById('custom-toolbar'),
+    editor: document.querySelector('[data-toggle="pen"]'),
+    debug: true,
+    list: [
+      'insertimage', 'blockquote','h1', 'h2', 'h3', 'h4', 'p', 'code', 'insertorderedlist', 'insertunorderedlist', 'inserthorizontalrule',
+      'indent', 'outdent', 'bold', 'italic', 'underline', 'createlink'
+    ]
+  };
+
+  var autosaving = false
+
+  // create editor
+  var pen = window.pen = new Pen(options);
+
+  pen.focus();
+
+  // toggle editor mode
+  document.querySelector('#mode').addEventListener('click', function() {
+    var text = this.textContent;
+
+    if(this.classList.contains('disabled')) {
+      this.classList.remove('disabled');
+      pen.rebuild();
+    } else {
+      this.classList.add('disabled');
+      pen.destroy();
+    }
+  });
+
+  // export content as markdown
+  document.querySelector('#tomd').addEventListener('click', function() {
+    var text = pen.toMd();
+    document.body.innerHTML = '<a href="javascript:location.reload()">&larr;back to editor</a><br><br><pre>' + text + '</pre>';
+  });
+
+  // toggle editor mode
+  document.querySelector('#hinted').addEventListener('click', function() {
+    var pen = document.querySelector('.pen')
+
+    if(pen.classList.contains('hinted')) {
+      pen.classList.remove('hinted');
+      this.classList.add('disabled');
+    } else {
+      pen.classList.add('hinted');
+      this.classList.remove('disabled');
+    }
+  });
+
+  document.getElementById( 'content' ).addEventListener('DOMSubtreeModified', function(e) {
+    console.log("MOD") 
+    $( "#saved" ).addClass('hidden')
+    if (!autosaving) {
+      autosaving = true
+      setTimeout( save, 2000 );
+    }
+  })
+
+  function save() {
+      console.log("AUTOSAVE") 
+      var payload = {
+        pk: "{{ version.id }}",
+        title: "{{ version.title }}",
+        content: pen.toMd()
+      }
+      $.ajax({
+          url: '/version/save/',
+          type: 'POST',
+          data: JSON.stringify(payload),
+          contentType: 'application/json; charset=utf-8',
+          dataType: 'json',
+          async: true,
+          success: function(payload) {
+              $( "#saved" ).removeClass('hidden')
+              autosaving = false
+          }
+      });
+  }
+
+</script>
+</body>
+</html>

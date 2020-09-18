@@ -1,0 +1,7 @@
+diff-match-patch==20181111
+Django==1.9.13
+django-floppyforms==1.7.0
+django-legaltext==0.3.0
+django-markymark==1.1.0
+Markdown==2.6.11
+pytz==2018.7

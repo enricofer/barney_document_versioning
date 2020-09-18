@@ -1,0 +1,108 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+<script>
+
+var blurred = false;
+window.onblur = function() { blurred = true; };
+window.onfocus = function() { blurred && (location.reload(), blurred = false); };
+
+var $ = django.jQuery
+
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = django.jQuery.trim(cookies[i]);
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+$.extend(
+{
+    redirectPost: function(location, args)
+    {
+        var form = $('<form></form>');
+        form.attr("method", "post");
+        form.attr("action", location);
+
+        $.each( args, function( key, value ) {
+            var field = $('<input></input>');
+
+            field.attr("type", "hidden");
+            field.attr("name", key);
+            field.attr("value", value);
+
+            form.append(field);
+        });
+        $(form).appendTo('body').submit();
+    }
+});
+
+$( '#nuovaversione' ).click( function(event) {
+    //var pk = $( ".field-pk" ).find( ".readonly" ).text()
+    var pk = $( "#id_id" ).val()
+    console.log("PK",pk)
+    //.redirectPost("/version/new/", {var: pk, csrfmiddlewaretoken: getCookie('csrftoken')});
+    $.ajax({
+      url: "/version/new/" + pk + "/", // Upload Script
+      dataType: 'json',
+      cache: false,
+      contentType: false,
+      processData: false,
+      type: 'get',
+      success: function(msg) {
+        console.log(msg)
+        window.location.href = '/admin/version/version/' + msg.new_version_id + '/change/';
+        //$('#feedback').html(msg.esito);
+      }
+    })
+  });
+
+$( '#edita' ).click( function(event) { 
+    var pk = $( "#id_id" ).val()
+    window.open('/version/edit/' + pk + '/','_blank');
+});
+
+$( '#riconcilia' ).click( function(event) {    
+    //var pk = $( ".field-pk" ).find( ".readonly" ).text()
+    var pk = $( "#id_id" ).val()
+    console.log("PK",pk)
+    //.redirectPost("/version/new/", {var: pk, csrfmiddlewaretoken: getCookie('csrftoken')});
+    $.ajax({
+      url: "/version/reconcile/" + pk + "/", // Upload Script
+      dataType: 'json',
+      cache: false,
+      contentType: false,
+      processData: false,
+      type: 'get',
+      success: function(msg) {
+        alert(JSON.stringify(msg))
+        console.log(msg)
+        window.location.href = '/admin/version/version/' + msg.redirect_id + '/change/';
+        //$('#feedback').html(msg.esito);
+      }
+    })
+  });
+
+</script>
+{% endblock %}
+
+
+{% block submit_buttons_bottom %}
+    <div class="submit-row">
+       <input type="button" value="{% trans 'Edita contenuto' %}" id="edita" />
+       <input type="button" value="{% trans 'Crea nuova versione' %}" id="nuovaversione" />
+       <input type="button" value="{% trans 'Riconcilia con antenato' %}" id="riconcilia" />
+    </div>
+
+    {{ block.super }}
+{% endblock %}

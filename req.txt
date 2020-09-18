@@ -1,0 +1,11 @@
+diff-match-patch==20200713
+Django==2.0.13
+django-computed-property==0.3.0
+django-computedfields==0.1.3
+django-floppyforms==1.9.0
+django-legaltext==1.0.0
+django-markymark==2.1.0
+Markdown==3.0.1
+pytz==2020.1
+six==1.15.0
+whatthepatch==1.0.0
