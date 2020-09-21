@@ -134,6 +134,7 @@ def save(request):
     if request.method == 'POST':
         body = request.body.decode('utf-8')
         postData = json.loads(body)
+        print ('postData:\n',postData, file=sys.stderr)
         versione = Version.objects.get(pk=postData["pk"])
         versione.content = postData['content']
         print ('NEW_CONTENT:\n',postData['content'], file=sys.stderr)

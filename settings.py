@@ -8,11 +8,22 @@ SECRET_KEY = 'legaltextexamples'
 
 USE_TZ = True
 
-DATABASES = {
+EX_DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(os.path.dirname(__file__), 'db.sqlite3'),
     }
+}
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'istanze',
+        'USER': 'istanze-amm',
+        'PASSWORD' : 'autaut',
+        'HOST' : 'localhost' ,
+        'PORT' : '',
+    },
 }
 
 INSTALLED_APPS = (
@@ -22,7 +33,9 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.sites',
     'django.contrib.staticfiles',
+    'django.contrib.messages',
     'computedfields',
+    #'corsheaders',
     'floppyforms',
     'markymark',
     'version',
@@ -50,8 +63,10 @@ STATICFILES_FINDERS = (
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'corsheaders.middleware.CorsPostCsrfMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -73,3 +88,5 @@ TEMPLATES = [
         },
     },
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True

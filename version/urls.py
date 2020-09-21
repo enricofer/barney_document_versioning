@@ -8,5 +8,8 @@ urlpatterns = [
     url(r'^new/(\d+)/$', views.new_version, name='new_version'),
     url(r'^reconcile/(\d+)/$', views.reconcile, name='reconcile'),
     url(r'^edit/(\d+)/$', views.edit, name='edit'),
+    url(r'^details/(\d+)/$', views.details, name='details'),
     url(r'^save/$', views.save, name='save'),
+    url(r'^tree/$', views.vtree, name='vtree'),
+    url(r'^list/$', views.vlist, name='vlist'),
 ]
