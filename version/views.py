@@ -1,6 +1,7 @@
 from functools import reduce
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+from django.forms.models import model_to_dict
 from .models import Version
 from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
 import diff_match_patch as dmp_module
@@ -74,6 +75,59 @@ def reconcile(request, id):
 def edit(request, id):
     versione = Version.objects.get(pk=id)
     return render(request, 'editor.html', {"version": versione, "content_html": markdown(versione.content)})
+
+@csrf_exempt
+def details(request, id):
+    versione = Version.objects.get(pk=id)
+    return JsonResponse({"details": model_to_dict(versione)})
+
+@csrf_exempt
+def vlist(request):
+    vlist = []
+    for v in Version.objects.all():
+        item = getVersionObject(v)
+    vlist.append(item)
+    return JsonResponse({"versions_list":vlist})
+
+@csrf_exempt
+def getVersionObject(v):
+    return {
+        "title": v.title,
+        "id": v.pk,
+        "path": str(v),
+        "parent_name": v.parent.title if v.parent else "",
+        "parent_id": v.parent.pk if v.parent else -1,
+        "conflicted": v.patch == "CONFLICTED",
+        "reconciliated": v.patch == "RECONCILIATED",
+        "master": False if v.parent else True
+    }    
+
+@csrf_exempt
+def vtree(request):
+    tree = []
+
+    def traverse_nodes(node):
+        node_content = getVersionObject(node)
+        item = {
+            "text": node_content["title"],
+            "payload": json.dumps(node_content),
+            "draggable":False,
+            "droppable": False,
+            "children": [],
+        }
+        children = Version.objects.filter(parent__pk=node.pk)
+        print (node,'> children:',children, file=sys.stderr)
+        for child in children:
+            item["children"].append(traverse_nodes(child))
+        return item
+    
+    root_nodes = Version.objects.filter(parent__pk=None)
+    print ('root_nodes:',root_nodes, file=sys.stderr)
+    for node in root_nodes:
+        tree.append(traverse_nodes(node))
+
+    return JsonResponse({"versions_tree":tree})
+    
 
 @csrf_exempt
 def save(request):
