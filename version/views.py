@@ -33,7 +33,7 @@ def new_version(request, master_id):
     versione.content = documento_master.content
     print ('patch:',versione, file=sys.stderr)
     versione.save()
-    return JsonResponse({"new_version_id":str(versione.pk)})
+    return JsonResponse(model_to_dict(versione))
 
     
 def reconcile(request, id):
@@ -52,7 +52,10 @@ def reconcile(request, id):
     if reconciled:
         versione.parent.content = res_patch[0]
         versione.parent.save()
-        redirect = versione.parent.pk
+        versione.patch = "RECONCILIATED"
+        versione.title = versione.title + "__reconciliated"
+        versione.save()
+        redirect = versione.parent
     else:
         res_diff3 = diff3(versione.content,res_patch[0],versione.parent.content)
         res_merge3_obj = merge3(versione.content,res_patch[0],versione.parent.content)
@@ -68,9 +71,9 @@ def reconcile(request, id):
         conflicted.content = res_merge2
         conflicted.title = versione.title + "__conflicted"
         conflicted.save()
-        redirect = conflicted.pk
+        redirect = conflicted
 
-    return JsonResponse({"result":res_patch, "reconciled": reconciled, "redirect_id":str(redirect)})
+    return JsonResponse({"reconciled": reconciled, "details":model_to_dict(redirect)})
 
 def edit(request, id):
     versione = Version.objects.get(pk=id)
@@ -135,13 +138,16 @@ def save(request):
         body = request.body.decode('utf-8')
         postData = json.loads(body)
         print ('postData:\n',postData, file=sys.stderr)
-        versione = Version.objects.get(pk=postData["pk"])
+        if postData["pk"] > 0:
+            versione = Version.objects.get(pk=postData["pk"])
+        else:
+            versione = Version()
         versione.content = postData['content']
         print ('NEW_CONTENT:\n',postData['content'], file=sys.stderr)
         versione.title = postData['title']
         versione.save()
-        return JsonResponse({"result":"ok","error": ""})
+        return JsonResponse({"result":"ok", "version_id": versione.pk, "error": ""})
     else:
-        return JsonResponse({"result":"ko","error": "wrong http method"})
+        return JsonResponse({"result":"ko", "error": "wrong http method"})
 
 

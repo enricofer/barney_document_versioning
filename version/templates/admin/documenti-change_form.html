@@ -61,7 +61,7 @@ $( '#nuovaversione' ).click( function(event) {
       type: 'get',
       success: function(msg) {
         console.log(msg)
-        window.location.href = '/admin/version/version/' + msg.new_version_id + '/change/';
+        window.location.href = '/admin/version/version/' + msg.id.toString() + '/change/';
         //$('#feedback').html(msg.esito);
       }
     })
@@ -87,7 +87,7 @@ $( '#riconcilia' ).click( function(event) {
       success: function(msg) {
         alert(JSON.stringify(msg))
         console.log(msg)
-        window.location.href = '/admin/version/version/' + msg.redirect_id + '/change/';
+        window.location.href = '/admin/version/version/' + msg.redirect_id.toString() + '/change/';
         //$('#feedback').html(msg.esito);
       }
     })

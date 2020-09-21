@@ -8,14 +8,14 @@ SECRET_KEY = 'legaltextexamples'
 
 USE_TZ = True
 
-EX_DATABASES = {
+DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(os.path.dirname(__file__), 'db.sqlite3'),
     }
 }
 
-DATABASES = {
+ex_DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'istanze',

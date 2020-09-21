@@ -14,10 +14,11 @@ class VersionForm(forms.ModelForm):
 
     #parent_title = forms.CharField(required=False, initial=parent_title, widget=forms.TextInput(attrs={"style": "width: 600px", "readonly": True}))
     title = forms.CharField(required=True, widget=forms.TextInput(attrs={"style": "width: 600px"}))
+    patch = forms.CharField(required=False, widget=forms.TextInput(attrs={"style": "width: 600px"}))
     content = forms.CharField(required=False, widget=MarkdownTextarea( attrs={'rows':'20', 'cols': '160', "readonly": True}))
     modify_date = forms.DateField(required=False, input_formats=['%Y-%m-%d','%d/%m/%Y'])
     base = forms.CharField(required=False, widget=forms.HiddenInput())
-    patch = forms.CharField(required=False, widget=forms.HiddenInput())
+    #patch = forms.CharField(required=False, widget=forms.HiddenInput())
     id = forms.IntegerField(required=False, widget=forms.HiddenInput())
 
     class Meta(object):
