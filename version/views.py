@@ -8,8 +8,10 @@ import diff_match_patch as dmp_module
 import whatthepatch
 from .diff3 import diff3, merge as merge3, SEPARATORS
 from markdown import markdown
+import pypandoc
 
-dmp = dmp_module.diff_match_patch()
+from django.core.files.temp import NamedTemporaryFile
+from django.core import files
 
 import sys
 import re
@@ -17,6 +19,11 @@ import json
 import os
 import subprocess
 import difflib
+import tempfile
+
+from io import StringIO, BytesIO
+
+dmp = dmp_module.diff_match_patch()
 
 def conta_rami(versione):
     rami = Version.objects.filter(parent__pk=versione.pk)
@@ -78,6 +85,60 @@ def reconcile(request, id):
 def edit(request, id):
     versione = Version.objects.get(pk=id)
     return render(request, 'editor.html', {"version": versione, "content_html": markdown(versione.content)})
+
+def html2pdf (html):
+    with open(page_html_ROOT, 'wb') as html_file:
+        html_file.write(bytes(html, 'UTF-8'))
+
+    execute ('iconv -f UTF-8 -t ISO-8859-1 -o %s  %s' % (iso_html_ROOT,page_html_ROOT))
+    execute ('htmldoc --bodyfont HELVETICA --size A4 --right 26mm --left 26mm --top 20mm --bottom 20mm --fontsize 13 --fontspacing 1.4 --webpage -f %s %s' % ( page_pdf_ROOT, iso_html_ROOT))
+    execute ('rm %s  %s' % (iso_html_ROOT, page_html_ROOT))
+
+@csrf_exempt
+def docx(request, id):
+    return download(request, 'docx', id)
+    
+@csrf_exempt
+def pdf(request, id):
+    return download(request, 'pdf', id)
+    
+@csrf_exempt
+def odt(request, id):
+    return download(request, 'odt', id)
+
+@csrf_exempt
+def download(request, format, id):
+    basedir = tempfile.mkdtemp()
+    md_file = os.path.join(basedir, "input.md")
+    out_file = os.path.join(basedir, "output." + format)
+    versione = Version.objects.get(pk=id)
+    output = pypandoc.convert_text(versione.content, format, format='md', outputfile=out_file)
+    print("OUTPUT", output)
+    stream = open(out_file, "rb")
+    response = HttpResponse(stream, content_type="application/vnd.openxmlformats") #application/pdf
+    response['Content-Disposition'] = 'attachment; filename=%s.%s' % (versione.title,format)
+    return response
+
+@csrf_exempt
+def upload(request, id):
+    if request.method == 'POST':
+        versione = Version.objects.get(pk=id)
+        upload = request.FILES['uploaded_content']
+        print ("MIMETYPE", upload.content_type)
+        if upload.content_type in ("text/markdown", "text/plain"):
+            versione.content = upload.read()
+        elif upload.content_type in ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ):
+            basedir = tempfile.mkdtemp()
+            md_file = os.path.join(basedir, "input.md")
+            in_file = os.path.join(basedir, "output.docx")
+            with open(in_file, 'rb') as dest:
+                dest.write(upload.read())
+            output = pypandoc.convert(in_file, "md", format='docx', outputfile=md_file)
+            with open(md_file,r) as md:
+                versione.content = md.read()
+        versione.save()
+        print("OUTPUT", output)
+        return JsonResponse({"result": "OK"})
 
 @csrf_exempt
 def details(request, id):

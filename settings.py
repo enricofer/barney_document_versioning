@@ -1,5 +1,6 @@
 import os
 import tempfile
+import socket
 
 
 DEBUG = True
@@ -8,23 +9,24 @@ SECRET_KEY = 'legaltextexamples'
 
 USE_TZ = True
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(os.path.dirname(__file__), 'db.sqlite3'),
+if socket.gethostname() == "sit008798":
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'dev',
+            'USER': 'dev',
+            'PASSWORD' : 'devel$',
+            'HOST' : 'localhost' ,
+            'PORT' : '',
+        },
     }
-}
-
-ex_DATABASES = {
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'istanze',
-        'USER': 'istanze-amm',
-        'PASSWORD' : 'autaut',
-        'HOST' : 'localhost' ,
-        'PORT' : '',
-    },
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(os.path.dirname(__file__), 'db.sqlite3'),
+        }
+    }
 
 INSTALLED_APPS = (
     'django.contrib.admin',
