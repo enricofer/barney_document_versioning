@@ -122,7 +122,10 @@ def download(request, format, id):
 @csrf_exempt
 def upload(request, id):
     if request.method == 'POST':
-        versione = Version.objects.get(pk=id)
+        if id:
+            versione = Version.objects.get(pk=id)
+        else:
+            versione = Version()
         upload = request.FILES['uploaded_content']
         print ("MIMETYPE", upload.content_type)
         if upload.content_type in ("text/markdown", "text/plain"):
@@ -131,14 +134,13 @@ def upload(request, id):
             basedir = tempfile.mkdtemp()
             md_file = os.path.join(basedir, "input.md")
             in_file = os.path.join(basedir, "output.docx")
-            with open(in_file, 'rb') as dest:
+            with open(in_file, 'wb') as dest:
                 dest.write(upload.read())
             output = pypandoc.convert(in_file, "md", format='docx', outputfile=md_file)
-            with open(md_file,r) as md:
+            with open(md_file,"r") as md:
                 versione.content = md.read()
         versione.save()
-        print("OUTPUT", output)
-        return JsonResponse({"result": "OK"})
+        return JsonResponse({"result": "OK", "version_id":versione.pk})
 
 @csrf_exempt
 def details(request, id):
@@ -198,7 +200,7 @@ def save(request):
     if request.method == 'POST':
         body = request.body.decode('utf-8')
         postData = json.loads(body)
-        print ('postData:\n',postData, file=sys.stderr)
+        print ('postData:\n',postData["pk"], file=sys.stderr)
         if postData["pk"] > 0:
             versione = Version.objects.get(pk=postData["pk"])
         else:
