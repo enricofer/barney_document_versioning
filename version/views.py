@@ -30,6 +30,12 @@ def conta_rami(versione):
     print ('rami:',rami, len(rami), file=sys.stderr)
     return len(rami)
 
+def versionDetails(v):
+    vdict = model_to_dict(v)
+    children = Version.objects.filter(parent__pk=v.pk)
+    vdict["hasChildern"] = True if children else False
+    return vdict
+
 # Create your views here.
 def new_version(request, master_id):
     documento_master = Version.objects.get(pk=master_id)
@@ -40,7 +46,7 @@ def new_version(request, master_id):
     versione.content = documento_master.content
     print ('patch:',versione, file=sys.stderr)
     versione.save()
-    return JsonResponse(model_to_dict(versione))
+    return JsonResponse(versionDetails(versione))
 
     
 def reconcile(request, id):
@@ -80,7 +86,7 @@ def reconcile(request, id):
         conflicted.save()
         redirect = conflicted
 
-    return JsonResponse({"reconciled": reconciled, "details":model_to_dict(redirect)})
+    return JsonResponse({"reconciled": reconciled, "details":versionDetails(redirect)})
 
 def edit(request, id):
     versione = Version.objects.get(pk=id)
@@ -145,7 +151,14 @@ def upload(request, id):
 @csrf_exempt
 def details(request, id):
     versione = Version.objects.get(pk=id)
-    return JsonResponse({"details": model_to_dict(versione)})
+    return JsonResponse(versionDetails(versione))
+
+@csrf_exempt
+def delete(request, id):
+    versione = Version.objects.get(pk=id)
+    deleted = model_to_dict(versione)
+    versione.delete()
+    return JsonResponse({"deleted": "ok", "deleted_version": deleted })
 
 @csrf_exempt
 def vlist(request):
@@ -174,6 +187,8 @@ def vtree(request):
 
     def traverse_nodes(node):
         node_content = getVersionObject(node)
+        children = Version.objects.filter(parent__pk=node.pk)
+        node_content["hasChildren"] = True if children else False
         item = {
             "text": node_content["title"],
             "payload": json.dumps(node_content),
@@ -181,7 +196,6 @@ def vtree(request):
             "droppable": False,
             "children": [],
         }
-        children = Version.objects.filter(parent__pk=node.pk)
         print (node,'> children:',children, file=sys.stderr)
         for child in children:
             item["children"].append(traverse_nodes(child))
@@ -205,12 +219,14 @@ def save(request):
             versione = Version.objects.get(pk=postData["pk"])
         else:
             versione = Version()
+        if versione.patch == "RECONCILIATED":
+            return JsonResponse({"result":"ko", "version_id": versione.pk, "error": "Reconciliated Versions cannot be modified"}, status=500)
         versione.content = postData['content']
         print ('NEW_CONTENT:\n',postData['content'], file=sys.stderr)
         versione.title = postData['title']
         versione.save()
         return JsonResponse({"result":"ok", "version_id": versione.pk, "error": ""})
     else:
-        return JsonResponse({"result":"ko", "error": "wrong http method"})
+        return JsonResponse({"result":"ko", "error": "wrong http method"}, status=500)
 
 
