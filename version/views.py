@@ -34,6 +34,9 @@ def versionDetails(v):
     vdict = model_to_dict(v)
     children = Version.objects.filter(parent__pk=v.pk)
     vdict["hasChildern"] = True if children else False
+    check_result = checkAndMerge(v)
+    vdict["conflicts"] = check_result["conflicts"]
+    vdict["conflicted"] = check_result["failed_patches"]
     return vdict
 
 # Create your views here.
@@ -48,35 +51,69 @@ def new_version(request, master_id):
     versione.save()
     return JsonResponse(versionDetails(versione))
 
-    
-def reconcile(request, id):
-    versione = Version.objects.get(pk=id)
-
+@csrf_exempt
+def checkAndMerge(versione, apply_patch=False):
     patch = dmp.patch_fromText(versione.patch)
-    print ('PATCH',patch[0], dir(patch[0]), file=sys.stderr)
     res_patch =  dmp.patch_apply(patch, versione.parent.content)
-    reconciled =  reduce(lambda a,b: a and b, res_patch[1], True)
+    reconciliable =  reduce(lambda a,b: a and b, res_patch[1], True)
 
+    failed_patches = []
+    success_patches = []
     for i,p in enumerate(patch):
-        print ('PATCH:',i, p.diffs, p.length1, p.length2, p.start1, p.start2,file=sys.stderr) 
+        if not res_patch[1][i]:
+            failed_patches.append(p.diffs)
+        else:
+            success_patches.append(p.diffs)
+
+    details = {}
+    if failed_patches:
+        reconciliable = False
+    else:
+        reconciliable = True
+        if apply_patch:
+            versione.parent.content = res_patch[0]
+            versione.parent.save()
+            versione.patch = "RECONCILIATED"
+            versione.title = versione.title + "__reconciliated"
+            versione.save()
+            details = versionDetails(versione.parent)
+    
+    return {"conflicts": not reconciliable, "version_id": id, "failed_patches": failed_patches, "success_patches": success_patches, "patch_text":versione.patch, "details": details}
+
+@csrf_exempt
+def check(request, id ):
+    versione = Version.objects.get(pk=id)
+    return JsonResponse(checkAndMerge(versione, apply_patch=False))
+
+@csrf_exempt
+def merge(request, id ):
+    versione = Version.objects.get(pk=id)
+    return JsonResponse(checkAndMerge(versione, apply_patch=True))
+
+@csrf_exempt
+def reconcile(request, id, ):
+    versione = Version.objects.get(pk=id)
+    patch = dmp.patch_fromText(versione.patch)
+    res_patch =  dmp.patch_apply(patch, versione.parent.content)
+    print ('RES PATCH',res_patch)
+    reconciled =  reduce(lambda a,b: a and b, res_patch[1], True)
 
     #print ('VERSION_CANDIDATE:\n',res_patch[0], file=sys.stderr)
 
     if reconciled:
-        versione.parent.content = res_patch[0]
-        versione.parent.save()
-        versione.patch = "RECONCILIATED"
-        versione.title = versione.title + "__reconciliated"
-        versione.save()
-        redirect = versione.parent
+        return merge(request, id)
     else:
         res_diff3 = diff3(versione.content,res_patch[0],versione.parent.content)
         res_merge3_obj = merge3(versione.content,res_patch[0],versione.parent.content)
         res_merge3 = "".join(res_merge3_obj["body"])
-        keep1 = res_merge3.split(SEPARATORS[3])
-        keep2 = keep1[1].split(SEPARATORS[1])
-        res_merge2 = keep1[0]+SEPARATORS[1]+keep2[1]
-        print ('VERSION_CONFLICT:\n',res_merge2, file=sys.stderr)
+        print ('VERSION_CONFLICT 3:\n',res_merge3, file=sys.stderr)
+        if SEPARATORS[1] in res_merge3:
+            keep1 = res_merge3.split(SEPARATORS[3])
+            keep2 = keep1[1].split(SEPARATORS[1])
+            res_merge2 = keep1[0]+SEPARATORS[1]+keep2[1]
+        else:
+            res_merge2 = res_merge_3
+        print ('VERSION_CONFLICT 2:\n',res_merge2, file=sys.stderr)
         conflicted = Version()
         conflicted.parent = versione.parent
         conflicted.base = versione.parent.content
