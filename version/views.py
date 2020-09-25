@@ -161,12 +161,8 @@ def delete(request, id):
     return JsonResponse({"deleted": "ok", "deleted_version": deleted })
 
 @csrf_exempt
-def vlist(request):
-    vlist = []
-    for v in Version.objects.all():
-        item = getVersionObject(v)
-    vlist.append(item)
-    return JsonResponse({"versions_list":vlist})
+def vlist(request, fromId):
+    return vtree(request, fromId, asList = True)
 
 @csrf_exempt
 def getVersionObject(v):
@@ -182,31 +178,33 @@ def getVersionObject(v):
     }    
 
 @csrf_exempt
-def vtree(request):
+def vtree(request, fromId, asList = False):
     tree = []
 
     def traverse_nodes(node):
         node_content = getVersionObject(node)
         children = Version.objects.filter(parent__pk=node.pk)
         node_content["hasChildren"] = True if children else False
-        item = {
-            "text": node_content["title"],
-            "payload": json.dumps(node_content),
-            "draggable":False,
-            "droppable": False,
-            "children": [],
-        }
-        print (node,'> children:',children, file=sys.stderr)
+        node_content["text"] = node_content["title"]
+        node_content["draggable"] = False
+        node_content["droppable"] = False
+        node_content["children"] = []
+
         for child in children:
-            item["children"].append(traverse_nodes(child))
-        return item
-    
-    root_nodes = Version.objects.filter(parent__pk=None)
+            if asList:
+                tree.append(traverse_nodes(child))
+            else:
+                node_content["children"].append(traverse_nodes(child))
+        return node_content
+    if fromId:
+        root_nodes = Version.objects.filter(pk=fromId)
+    else:
+        root_nodes = Version.objects.filter(parent__pk=None)
     print ('root_nodes:',root_nodes, file=sys.stderr)
     for node in root_nodes:
         tree.append(traverse_nodes(node))
 
-    return JsonResponse({"versions_tree":tree})
+    return JsonResponse({"versions":tree})
     
 
 @csrf_exempt
