@@ -53,17 +53,27 @@ def new_version(request, master_id):
 
 @csrf_exempt
 def checkAndMerge(versione, apply_patch=False):
-    patch = dmp.patch_fromText(versione.patch)
-    res_patch =  dmp.patch_apply(patch, versione.parent.content)
-    reconciliable =  reduce(lambda a,b: a and b, res_patch[1], True)
-
+    if versione.patch == "CONFLICTED":
+        return {"conflicts": True, "version_id": id, "failed_patches": [], "success_patches": [], "patch_text":versione.patch, "details": {}}
     failed_patches = []
     success_patches = []
-    for i,p in enumerate(patch):
-        if not res_patch[1][i]:
-            failed_patches.append(p.diffs)
-        else:
-            success_patches.append(p.diffs)
+    if versione.parent:
+        patch = dmp.patch_fromText(versione.patch)
+        res_patch =  dmp.patch_apply(patch, versione.parent.content)
+        reconciliable =  reduce(lambda a,b: a and b, res_patch[1], True)
+        
+        for i,p in enumerate(patch):
+            print ("PATCH RESULT", p.diffs)
+            diffs = [[int(a[0]),a[1]] for a in p.diffs]
+            if not res_patch[1][i]:
+                failed_patches.append(diffs)
+            else:
+                success_patches.append(diffs)
+        
+        print("failed_patches",failed_patches)
+        parent_content = res_patch[0]
+    else:
+        parent_content = ""
 
     details = {}
     if failed_patches:
@@ -71,7 +81,7 @@ def checkAndMerge(versione, apply_patch=False):
     else:
         reconciliable = True
         if apply_patch:
-            versione.parent.content = res_patch[0]
+            versione.parent.content = parent_content
             versione.parent.save()
             versione.patch = "RECONCILIATED"
             versione.title = versione.title + "__reconciliated"
@@ -112,7 +122,7 @@ def reconcile(request, id, ):
             keep2 = keep1[1].split(SEPARATORS[1])
             res_merge2 = keep1[0]+SEPARATORS[1]+keep2[1]
         else:
-            res_merge2 = res_merge_3
+            res_merge2 = res_merge3
         print ('VERSION_CONFLICT 2:\n',res_merge2, file=sys.stderr)
         conflicted = Version()
         conflicted.parent = versione.parent
