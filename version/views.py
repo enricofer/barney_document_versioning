@@ -112,6 +112,7 @@ def reconcile(request, id, ):
 
     #print ('VERSION_CANDIDATE:\n',res_patch[0], file=sys.stderr)
 
+    '''
     if reconciled:
         return merge(request, id)
     else:
@@ -126,16 +127,17 @@ def reconcile(request, id, ):
         else:
             res_merge2 = res_merge3
         print ('VERSION_CONFLICT 2:\n',res_merge2, file=sys.stderr)
-        conflicted = Version()
-        conflicted.parent = versione.parent
-        conflicted.base = versione.parent.content
-        conflicted.patch = "CONFLICTED"
-        conflicted.content = res_merge2
-        conflicted.title = versione.title + "__conflicted"
-        conflicted.save()
+        #conflicted = Version()
+        #conflicted.parent = versione.parent
+        #conflicted.base = versione.parent.content
+        #conflicted.patch = "CONFLICTED"
+        #conflicted.content = res_merge2
+        #conflicted.title = versione.title + "__conflicted"
+        #conflicted.save()
         redirect = conflicted
+    '''
 
-    return JsonResponse({"reconciled": reconciled, "details":versionDetails(redirect)})
+    return JsonResponse({"reconciled":reconciled,"reconcileTarget":res_patch[0], "reconcileSource": versione.parent.content})
 
 def edit(request, id):
     versione = Version.objects.get(pk=id)
