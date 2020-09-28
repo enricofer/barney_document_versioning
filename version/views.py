@@ -174,8 +174,7 @@ def download(request, format, id):
     out_file_path = os.path.join(basedir, "output." + format)
     versione = Version.objects.get(pk=id)
     #FASE1 generazione del file odt del contenuto corrente
-    output1 = pypandoc.convert_text(versione.content, format, format='md', outputfile=out_file_path)
-    print("OUTPUT1 VERSION", output1)
+    pypandoc.convert_text(versione.content, format, format='md', outputfile=out_file_path)
 
     if versione.parent:
         #FASE2_1 copia di backup
@@ -189,21 +188,20 @@ def download(request, format, id):
         print ("dezipVersionDir", dezipVersionDir)
         os.mkdir(dezipVersionDir)
         #FASE4 generazione del file odt del contenuto master
-        master_file = os.path.join(dezipVersionDir, "master.odt")
-        output2 = pypandoc.convert_text(versione.content, format, format='md', outputfile=master_file)
-        print("OUTPUT2 VERSION", output2)
+        master_file = os.path.join(dezipVersionDir, "Version1")
+        pypandoc.convert_text(versione.parent.content, format, format='md', outputfile=master_file)
         #FASE5 creazione file versionsList.xml
-        template = """<?xml version="1.0" encoding="UTF-8"?><VL:version-list xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:VL="http://openoffice.org/2001/versions-list"><VL:version-entry VL:title="master.odt" VL:comment="%s" VL:creator="" dc:date-time="%s"/></VL:version-list>"""
-        versionsListTxt = template % ("user", versione.parent.modify_date.strftime("%Y-%m-%dT%H:%M:%S")) #2020-09-28T08:58:50
-        versionsListFilePath = os.path.join(dezipDir, "VersionsList.xml")
-        with open(versionsListFilePath,'w') as versionsListFile:
-            versionsListFile.write(versionsListTxt)
+        template = """<?xml version="1.0" encoding="UTF-8"?><VL:version-list xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:VL="http://openoffice.org/2001/versions-list"><VL:version-entry VL:title="Version1" VL:comment="%s" VL:creator="user" dc:date-time="%s"/></VL:version-list>"""
+        versionListTxt = template % ("user", versione.parent.modify_date.strftime("%Y-%m-%dT%H:%M:%S")) #2020-09-28T08:58:50
+        versionListFilePath = os.path.join(dezipDir, "VersionList.xml")
+        with open(versionListFilePath,'w') as versionListFile:
+            versionListFile.write(versionListTxt)
         #FASE6 MODIFICA META-INF/manifest.xml
         manifestFilePath = os.path.join(dezipDir, "META-INF", "manifest.xml")
         with open(manifestFilePath,'r') as manifestFile:
             manifestFileContent = manifestFile.read()
         versionsMetafileEdit = """   <manifest:file-entry manifest:full-path="VersionList.xml" manifest:media-type=""/>\n"""
-        versionsMetafileEdit += """   <manifest:file-entry manifest:full-path="Versions/master.odt" manifest:media-type=""/>\n"""
+        versionsMetafileEdit += """   <manifest:file-entry manifest:full-path="Versions/Version1" manifest:media-type=""/>\n"""
         manifestFileNewContent = manifestFileContent[:-20]+versionsMetafileEdit+manifestFileContent[-20:]
         os.remove(manifestFilePath)
         with open(manifestFilePath,'w') as manifestFile:
@@ -212,7 +210,7 @@ def download(request, format, id):
         #FASE8 rimozione odt versione corrente
         os.remove(out_file_path)
         #FASE9 creazione nuovo odt da compressione directory precedenti
-        out_file = zipfile.ZipFile(out_file_path, 'w', zipfile.ZIP_DEFLATED)
+        out_file = zipfile.ZipFile(out_file_path, 'w', zipfile.ZIP_STORED)
         zipdir(dezipDir, out_file)
         out_file.close()
 
