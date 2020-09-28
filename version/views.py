@@ -20,6 +20,7 @@ import os
 import subprocess
 import difflib
 import tempfile
+import zipfile
 
 from io import StringIO, BytesIO
 
@@ -161,13 +162,62 @@ def odt(request, id):
 
 @csrf_exempt
 def download(request, format, id):
+
+    def zipdir(path, ziph):
+        # ziph is zipfile handle
+        for root, dirs, files in os.walk(path):
+            for filename in files:
+                ziph.write(os.path.join(root,filename),os.path.join(root,filename)[len(dezipDir):])
+
     basedir = tempfile.mkdtemp()
-    md_file = os.path.join(basedir, "input.md")
-    out_file = os.path.join(basedir, "output." + format)
+    md_file_path = os.path.join(basedir, "input.md")
+    out_file_path = os.path.join(basedir, "output." + format)
     versione = Version.objects.get(pk=id)
-    output = pypandoc.convert_text(versione.content, format, format='md', outputfile=out_file)
-    print("OUTPUT", output)
-    stream = open(out_file, "rb")
+    #FASE1 generazione del file odt del contenuto corrente
+    output1 = pypandoc.convert_text(versione.content, format, format='md', outputfile=out_file_path)
+    print("OUTPUT1 VERSION", output1)
+
+    if versione.parent:
+        #FASE2_1 copia di backup
+
+        #FASE2 scompattamento del file odt
+        dezipDir = os.path.join(basedir, "raw_odt")
+        with zipfile.ZipFile(out_file_path, 'r') as zip_ref:
+            zip_ref.extractall(dezipDir)
+        #FASE3 creazione directory Versions dentro directory zippata
+        dezipVersionDir = os.path.join(dezipDir, "Versions")
+        print ("dezipVersionDir", dezipVersionDir)
+        os.mkdir(dezipVersionDir)
+        #FASE4 generazione del file odt del contenuto master
+        master_file = os.path.join(dezipVersionDir, "master.odt")
+        output2 = pypandoc.convert_text(versione.content, format, format='md', outputfile=master_file)
+        print("OUTPUT2 VERSION", output2)
+        #FASE5 creazione file versionsList.xml
+        template = """<?xml version="1.0" encoding="UTF-8"?><VL:version-list xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:VL="http://openoffice.org/2001/versions-list"><VL:version-entry VL:title="master.odt" VL:comment="%s" VL:creator="" dc:date-time="%s"/></VL:version-list>"""
+        versionsListTxt = template % ("user", versione.parent.modify_date.strftime("%Y-%m-%dT%H:%M:%S")) #2020-09-28T08:58:50
+        versionsListFilePath = os.path.join(dezipDir, "VersionsList.xml")
+        with open(versionsListFilePath,'w') as versionsListFile:
+            versionsListFile.write(versionsListTxt)
+        #FASE6 MODIFICA META-INF/manifest.xml
+        manifestFilePath = os.path.join(dezipDir, "META-INF", "manifest.xml")
+        with open(manifestFilePath,'r') as manifestFile:
+            manifestFileContent = manifestFile.read()
+        versionsMetafileEdit = """   <manifest:file-entry manifest:full-path="VersionList.xml" manifest:media-type=""/>\n"""
+        versionsMetafileEdit += """   <manifest:file-entry manifest:full-path="Versions/master.odt" manifest:media-type=""/>\n"""
+        manifestFileNewContent = manifestFileContent[:-20]+versionsMetafileEdit+manifestFileContent[-20:]
+        os.remove(manifestFilePath)
+        with open(manifestFilePath,'w') as manifestFile:
+            manifestFile.write(manifestFileNewContent)
+        #FASE8 modifica stili
+        #FASE8 rimozione odt versione corrente
+        os.remove(out_file_path)
+        #FASE9 creazione nuovo odt da compressione directory precedenti
+        out_file = zipfile.ZipFile(out_file_path, 'w', zipfile.ZIP_DEFLATED)
+        zipdir(dezipDir, out_file)
+        out_file.close()
+
+
+    stream = open(out_file_path, "rb")
     response = HttpResponse(stream, content_type="application/vnd.openxmlformats") #application/pdf
     response['Content-Disposition'] = 'attachment; filename=%s.%s' % (versione.title,format)
     return response
