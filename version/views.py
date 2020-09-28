@@ -21,6 +21,7 @@ import subprocess
 import difflib
 import tempfile
 import zipfile
+from shutil import copyfile
 
 from io import StringIO, BytesIO
 
@@ -207,6 +208,8 @@ def download(request, format, id):
         with open(manifestFilePath,'w') as manifestFile:
             manifestFile.write(manifestFileNewContent)
         #FASE8 modifica stili
+        os.remove(os.path.join(dezipDir,"styles.xml"))
+        copyfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"styles.xml"), os.path.join(dezipDir,"styles.xml"))
         #FASE8 rimozione odt versione corrente
         os.remove(out_file_path)
         #FASE9 creazione nuovo odt da compressione directory precedenti
