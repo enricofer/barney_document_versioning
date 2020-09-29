@@ -9,7 +9,7 @@ from markymark.fields import MarkdownField
 import diff_match_patch as dmp_module
 import sys
 import json
-from .diff3 import diff3, merge, SEPARATORS
+from .conflicts import getConflicts
 from functools import reduce
 
 # Create your models here.
@@ -17,11 +17,22 @@ from functools import reduce
 dmp = dmp_module.diff_match_patch()
 
 class Version(models.Model):
+
+    VERSION_CHOICES = [
+        ('Master', 'Master'),
+        ('Version', 'Version'),
+        ('Conflicted', 'Conflicted'),
+        ('History', 'History'),
+        ('Reconciled', 'Reconciled'),
+    ]
+
     title = models.CharField(max_length=100)
     parent = models.ForeignKey('Version', on_delete=models.CASCADE, blank=True, null=True)
     base = models.TextField(blank=True, null=True)
     modify_date = models.DateTimeField(auto_now=True,blank=True, null=True)
     patch = models.TextField(blank=True, null=True)
+    conflicts = models.IntegerField(default=0)
+    status = models.CharField(choices=VERSION_CHOICES, default='Master', max_length=12)
     content = MarkdownField(blank=True, null=True)
 
     class Meta:
@@ -29,17 +40,24 @@ class Version(models.Model):
         verbose_name_plural = 'Version'
 
     def save(self, *args, **kwargs):
-        conflicted = not reduce(lambda a,b: a and not b in self.content, SEPARATORS, True)
-        print ('conflicted:', conflicted, file=sys.stderr)
-        if not conflicted:
-            if self.parent: 
-                patch_obj = dmp.patch_make(self.base, self.content)
-            else:
-                patch_obj = dmp.patch_make("", self.content)
-            print ('patch:',dmp.patch_toText(patch_obj), file=sys.stderr)
-            self.patch = dmp.patch_toText(patch_obj)
+        if self.status in ('History', 'Reconciled') :
+            return
+        '''
+        conflicts_check = getConflicts(self, quick=True)
+        print ('conflicts_check:', conflicts_check, file=sys.stderr)
+        self.conflicts = conflicts_check["conflicts"]
+        if conflicts_check["conflicts"] == 0:
+            self.status = 'Conflicted'
         else:
-            self.patch = "CONFLICTED"
+            self.status = 'Version'
+        '''
+        if self.parent: 
+            patch_obj = dmp.patch_make(self.base, self.content)
+        else:
+            patch_obj = dmp.patch_make("", self.content)
+            self.status = 'Master'
+        print ('patch:',dmp.patch_toText(patch_obj), file=sys.stderr)
+        self.patch = dmp.patch_toText(patch_obj)
         super(Version, self).save(*args, **kwargs)
 
     def __str__(self):
@@ -48,58 +66,7 @@ class Version(models.Model):
         while parent:
             antenati += parent.title + "/"
             parent = parent.parent
-
-        return antenati + self.title
-
-"""
-    @property
-    def calculation():
-        patch = dmp.patch_fromText(self.patch)
-        if self.parent:
-            return dmp.patch_apply(patch, parent.content)[0]
+        if self.status in ('History', 'Reconciled'):
+            return antenati + self.title + ":" + self.modify_date.strftime("%Y-%m-%dT%H:%M:%S")
         else:
-            return dmp.patch_apply(patch, "")[0]
-
-    def __getattr__(self, name):
-        print ('__getattr__:',name, file=sys.stderr)
-        if name == "content":
-            patch = dmp.patch_fromText(self.patch)
-            if self.parent:
-                return dmp.patch_apply(patch, parent.content)[0]
-            else:
-                return dmp.patch_apply(patch, "")[0]
-        #super(Version, self).__getattr__(name)
-
-    def __setattr__(self, name, value):
-        print ('__setattr__:',name, value, file=sys.stderr)
-        if name == "content":
-            self.content_txt = value
-        super(Version, self).__setattr__(name, value)
-
-    @property
-    def contentTTT(self):
-        if self.parent:
-            patch = dmp.patch_fromText(self.patch)
-            return dmp.patch_apply(patch, parent.content)[0]
-        else:
-            return dmp.patch_apply(patch, "")[0]
-
-    class Meta:
-        verbose_name = 'Versions'
-        verbose_name_plural = 'Version'
-
-    def init__(self, *args, **kwargs):
-        content = kwargs.get('content', {})
-        patch_obj = dmp.patch_make("", content)
-        self.patch = dmp.patch_toText(patch_obj)
-        super(__init__, self).save(*args, **kwargs)
-
-    def new__(self,title):
-        new_version = self()
-        new_version.parent = self
-        new_version.title = title
-        patch_obj = dmp.patch_make("", "")
-        new_version.patch = dmp.patch_toText(patch_obj)
-        new_version.save()
-        return new_version
-"""
+            return antenati + self.title

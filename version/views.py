@@ -5,8 +5,8 @@ from django.forms.models import model_to_dict
 from .models import Version
 from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
 import diff_match_patch as dmp_module
-import whatthepatch
 from .diff3 import diff3, merge as merge3, SEPARATORS
+from .conflicts import getConflicts
 from markdown import markdown
 import pypandoc
 
@@ -35,16 +35,27 @@ def conta_rami(versione):
 def versionDetails(v):
     vdict = model_to_dict(v)
     children = Version.objects.filter(parent__pk=v.pk)
-    vdict["hasChildern"] = True if children else False
-    check_result = checkAndMerge(v)
-    vdict["conflicts"] = check_result["conflicts"]
-    vdict["conflicted"] = check_result["failed_patches"]
+    vdict["hasChildren"] = True if children else False
+    if v.parent:
+        conflicts_check = getConflicts(v, quick=True)
+        if conflicts_check != v.conflicts:
+            print ('conflicts_check:', conflicts_check, file=sys.stderr)
+            v.conflicts = conflicts_check["conflicts"]
+            if conflicts_check["conflicts"] == 0:
+                v.status = 'Version'
+            else:
+                v.status = 'Conflicted'
+            v.save()
     return vdict
 
 # Create your views here.
 def new_version(request, master_id):
     documento_master = Version.objects.get(pk=master_id)
     versione = Version()
+    if versione.parent:
+        versione.status = 'master'
+    else:
+        versione.status = 'version'
     versione.parent = documento_master
     versione.title = "ramo-%s" % str(conta_rami(documento_master) + 1)
     versione.base = documento_master.content
@@ -54,9 +65,14 @@ def new_version(request, master_id):
     return JsonResponse(versionDetails(versione))
 
 @csrf_exempt
+def conflicts(requests, id):
+    versione = Version.objects.get(pk=id)
+    return JsonResponse(getConflicts(versione))
+
+'''
 def checkAndMerge(versione, apply_patch=False):
-    if versione.patch == "CONFLICTED":
-        return {"conflicts": True, "version_id": id, "failed_patches": [], "success_patches": [], "patch_text":versione.patch, "details": {}}
+    if versione.patch == "RECONCILIATED":
+        return {"conflicts": True, "version_id": versione.id, "failed_patches": [], "success_patches": [], "patch_text":versione.patch, "details": {}}
     failed_patches = []
     success_patches = []
     if versione.parent:
@@ -90,18 +106,37 @@ def checkAndMerge(versione, apply_patch=False):
             versione.save()
             details = versionDetails(versione.parent)
     
-    return {"conflicts": not reconciliable, "version_id": id, "failed_patches": failed_patches, "success_patches": success_patches, "patch_text":versione.patch, "details": details}
+    return {"conflicts": not reconciliable, "version_id": versione.id, "failed_patches": failed_patches, "success_patches": success_patches, "patch_text":versione.patch, "details": details}
 
 @csrf_exempt
 def check(request, id ):
     versione = Version.objects.get(pk=id)
     return JsonResponse(checkAndMerge(versione, apply_patch=False))
+'''
 
 @csrf_exempt
 def merge(request, id ):
     versione = Version.objects.get(pk=id)
-    return JsonResponse(checkAndMerge(versione, apply_patch=True))
+    if not versione.parent:
+       return JsonResponse({"result":"ko", "error": "This is master version without merge target. Can't merge"}, status=500) 
+    if versione.conflicts == 0:
+        patch = dmp.patch_fromText(versione.patch)
+        res_patch =  dmp.patch_apply(patch, versione.parent.content)
+        reconciliable =  reduce(lambda a,b: a and b, res_patch[1], True)
+        if reconciliable:
+            versione.parent.content = res_patch[0]
+            versione.parent.save()
+            versione.patch = "RECONCILIATED"
+            versione.status = 'History'
+            versione.title = versione.title + "__reconciliated"
+            versione.save()
+            details = versionDetails(versione.parent)
+            print("MERGE", details)
+            return JsonResponse({"parent_id": versione.parent.pk })
 
+    return JsonResponse({"result":"ko", "error": "the version has conflicts. Can't merge"}, status=500)
+
+'''
 @csrf_exempt
 def reconcile(request, id, ):
     versione = Version.objects.get(pk=id)
@@ -112,7 +147,6 @@ def reconcile(request, id, ):
 
     #print ('VERSION_CANDIDATE:\n',res_patch[0], file=sys.stderr)
 
-    '''
     if reconciled:
         return merge(request, id)
     else:
@@ -135,13 +169,15 @@ def reconcile(request, id, ):
         #conflicted.title = versione.title + "__conflicted"
         #conflicted.save()
         redirect = conflicted
-    '''
 
-    return JsonResponse({"reconciled":reconciled,"reconcileTarget":res_patch[0], "reconcileSource": versione.parent.content})
+    return JsonResponse({"reconciled":reconciled,"parent_id":versione.parent.pk,"reconcileTarget":res_patch[0], "reconcileSource": versione.parent.content})
+'''
 
+'''
 def edit(request, id):
     versione = Version.objects.get(pk=id)
     return render(request, 'editor.html', {"version": versione, "content_html": markdown(versione.content)})
+'''
 
 def html2pdf (html):
     with open(page_html_ROOT, 'wb') as html_file:
@@ -179,7 +215,7 @@ def download(request, format, id):
     #FASE1 generazione del file odt del contenuto corrente
     pypandoc.convert_text(versione.content, format, format='md', outputfile=out_file_path)
 
-    if versione.parent:
+    if versione.parent and format == 'odt':
         #FASE2_1 copia di backup
 
         #FASE2 scompattamento del file odt
@@ -218,7 +254,6 @@ def download(request, format, id):
         out_file = zipfile.ZipFile(out_file_path, 'w', zipfile.ZIP_STORED)
         zipdir(dezipDir, out_file)
         out_file.close()
-
 
     stream = open(out_file_path, "rb")
     response = HttpResponse(stream, content_type="application/vnd.openxmlformats") #application/pdf
