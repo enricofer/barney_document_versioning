@@ -6,7 +6,7 @@ diff-match-patch
 django-autocomplete-light
 django-computed-property
 django-computedfields
-django-cors-headers==3.0.2
+django-cors-middleware==1.5.0
 django-markymark
 EasyProcess
 Markdown

@@ -36,7 +36,9 @@ def versionDetails(v):
     vdict = model_to_dict(v)
     children = Version.objects.filter(parent__pk=v.pk)
     vdict["hasChildren"] = True if children else False
+    vdict["parentTitle"] = ""
     if v.parent:
+        vdict["parentTitle"] = v.parent.title
         conflicts_check = getConflicts(v, quick=True)
         if conflicts_check != v.conflicts:
             print ('conflicts_check:', conflicts_check, file=sys.stderr)
@@ -200,7 +202,27 @@ def odt(request, id):
     return download(request, 'odt', id)
 
 @csrf_exempt
-def download(request, format, id):
+def rebase(request):
+    if request.method == 'POST':
+        body = request.body.decode('utf-8')
+        postData = json.loads(body)
+        versione_current = Version.objects.get(pk=postData["pk"])
+        versione = Version()
+        versione.title = versione_current.title + "__reconciled"
+        versione.parent = versione_current.parent
+        versione.base = postData["new_base"]
+        versione.content = postData["new_content"]
+        check = getConflicts(versione)
+        if check["conflicts"] == 0:
+            versione.status = 'Reconciled'
+            versione.conflicts = 0
+            versione.save()
+            print ("REBASE", versione)
+            return JsonResponse({"result":"ok", "version_id": versione.pk, "error": "rebased"})
+        else:
+            return JsonResponse({"result":"ko", "version_id": versione_current.pk, "error": "Can't rebase. Content has conflicts"}, status=500)
+    else:
+        return JsonResponse({"result":"ko", "error": "wrong http method"}, status=500)
 
     def zipdir(path, ziph):
         # ziph is zipfile handle
@@ -304,10 +326,11 @@ def getVersionObject(v):
     return {
         "title": v.title,
         "id": v.pk,
+        "status": v.status,
         "path": str(v),
         "parent_name": v.parent.title if v.parent else "",
         "parent_id": v.parent.pk if v.parent else -1,
-        "conflicted": v.patch == "CONFLICTED",
+        "conflicted": v.conflicts > 0,
         "reconciliated": v.patch == "RECONCILIATED",
         "master": False if v.parent else True
     }    

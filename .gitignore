@@ -5,5 +5,5 @@ env
 .DS_Store
 *.sql
 /.idea
-*/migrations/*
-
+migrations/*
+db.sqlite3

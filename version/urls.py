@@ -17,6 +17,7 @@ urlpatterns = [
     url(r'^details/(\d+)/$', views.details, name='details'),
     url(r'^delete/(\d+)/$', views.delete, name='delete'),
     url(r'^save/$', views.save, name='save'),
+    url(r'^rebase/$', views.rebase, name='rebase'),
     url(r'^tree/(\d+)?/$', views.vtree, name='vtree'),
     url(r'^list/(\d+)?/$', views.vlist, name='vlist'),
     #url(r'^check/(\d+)/$', views.checkAndMerge, name='checkVersion'),

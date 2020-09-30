@@ -40,7 +40,7 @@ class Version(models.Model):
         verbose_name_plural = 'Version'
 
     def save(self, *args, **kwargs):
-        if self.status in ('History', 'Reconciled') :
+        if self.status in ('History',) :
             return
         '''
         conflicts_check = getConflicts(self, quick=True)
@@ -66,7 +66,7 @@ class Version(models.Model):
         while parent:
             antenati += parent.title + "/"
             parent = parent.parent
-        if self.status in ('History', 'Reconciled'):
+        if self.status in ('History', ):
             return antenati + self.title + ":" + self.modify_date.strftime("%Y-%m-%dT%H:%M:%S")
         else:
             return antenati + self.title
