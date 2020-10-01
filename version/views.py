@@ -39,15 +39,16 @@ def versionDetails(v):
     vdict["parentTitle"] = ""
     if v.parent:
         vdict["parentTitle"] = v.parent.title
-        conflicts_check = getConflicts(v, quick=True)
-        if conflicts_check != v.conflicts:
-            print ('conflicts_check:', conflicts_check, file=sys.stderr)
-            v.conflicts = conflicts_check["conflicts"]
-            if conflicts_check["conflicts"] == 0:
-                v.status = 'Version'
-            else:
-                v.status = 'Conflicted'
-            v.save()
+        if v.status != 'History':
+            conflicts_check = getConflicts(v, quick=True)
+            if conflicts_check != v.conflicts:
+                print ('conflicts_check:', conflicts_check, file=sys.stderr)
+                v.conflicts = conflicts_check["conflicts"]
+                if conflicts_check["conflicts"] == 0:
+                    v.status = 'Version'
+                else:
+                    v.status = 'Conflicted'
+                v.save()
     return vdict
 
 # Create your views here.
@@ -128,9 +129,9 @@ def merge(request, id ):
         if reconciliable:
             versione.parent.content = res_patch[0]
             versione.parent.save()
-            versione.patch = "RECONCILIATED"
-            versione.status = 'History'
-            versione.title = versione.title + "__reconciliated"
+            versione.patch = "MERGED"
+            versione.status = 'Merged'
+            versione.title = versione.title + "__merged"
             versione.save()
             details = versionDetails(versione.parent)
             print("MERGE", details)
@@ -224,6 +225,10 @@ def rebase(request):
     else:
         return JsonResponse({"result":"ko", "error": "wrong http method"}, status=500)
 
+
+@csrf_exempt
+def download(request, format, id):
+    
     def zipdir(path, ziph):
         # ziph is zipfile handle
         for root, dirs, files in os.walk(path):

@@ -7,6 +7,18 @@ from .diff3 import diff3, merge as merge3, SEPARATORS
 dmp = dmp_module.diff_match_patch()
 
 def getConflicts (versione, quick=False):
+    if versione.status == 'History':
+        return {
+            "conflicts": 0,
+            "failed_patches": [],
+            "success_patches": [],
+            "source_content": "",
+            "target_content": "",
+            "conflicted_content": "Historical version " + versione.modify_date.strftime("%Y-%m-%dT%H:%M:%S")
+        }
+
+    dmp.Patch_DeleteThreshold = 0.2
+    dmp.Match_Threshold = 0
     failed_patches = []
     success_patches = []
     source_content = ""

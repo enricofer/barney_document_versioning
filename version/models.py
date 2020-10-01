@@ -24,6 +24,7 @@ class Version(models.Model):
         ('Conflicted', 'Conflicted'),
         ('History', 'History'),
         ('Reconciled', 'Reconciled'),
+        ('Merged', 'Merged'),
     ]
 
     title = models.CharField(max_length=100)
@@ -40,8 +41,10 @@ class Version(models.Model):
         verbose_name_plural = 'Version'
 
     def save(self, *args, **kwargs):
-        if self.status in ('History',) :
+        if self.status == 'History':
             return
+        if self.status in ('Merged', ):
+            self.status = 'History'
         '''
         conflicts_check = getConflicts(self, quick=True)
         print ('conflicts_check:', conflicts_check, file=sys.stderr)

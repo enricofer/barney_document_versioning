@@ -33,7 +33,7 @@ class VersionForm(forms.ModelForm):
             self.parent_title = instance.parent.title if instance.parent else ""
         super(VersionForm, self).__init__(*args, **kwargs)
 
-@admin.register(Version)
+#@admin.register(Version)
 class VersionAdmin(admin.ModelAdmin):
 
     #fields = ('title', 'content', 'patch', 'pk')
@@ -45,4 +45,4 @@ class VersionAdmin(admin.ModelAdmin):
         return render_markdown(obj.content)
     rendered_content.allow_tags=False
 
-#admin.site.register(Version)
+admin.site.register(Version)
