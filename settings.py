@@ -1,6 +1,7 @@
 import os
 import tempfile
 import socket
+import datetime
 
 
 DEBUG = True
@@ -8,6 +9,8 @@ DEBUG = True
 SECRET_KEY = 'legaltextexamples'
 
 USE_TZ = True
+
+CORS_ORIGIN_ALLOW_ALL = True
 
 if socket.gethostname() == "sit008798":
     DATABASES = {
@@ -64,14 +67,15 @@ STATICFILES_FINDERS = (
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'corsheaders.middleware.CorsPostCsrfMiddleware',
+    #'version.cors.CorsMiddleware',
+    'jwt_auth.middleware.JWTAuthenticationMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'jwt_auth.middleware.JWTAuthenticationMiddleware',
+    #'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 TEMPLATES = [
@@ -90,5 +94,3 @@ TEMPLATES = [
         },
     },
 ]
-
-CORS_ORIGIN_ALLOW_ALL = True

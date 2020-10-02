@@ -59,6 +59,10 @@ def versionDetails(v):
             v.save()
     return vdict
 
+class new_version_restricted(JSONWebTokenAuthMixin, View):
+    def get(self, request, id):
+        return new_version(requests, id)
+
 # Create your views here.
 def new_version(request, master_id):
     documento_master = Version.objects.get(pk=master_id)
@@ -75,55 +79,18 @@ def new_version(request, master_id):
     versione.save()
     return JsonResponse(versionDetails(versione))
 
+class conflicts_restricted(JSONWebTokenAuthMixin, View):
+    def get(self, request, id):
+        return conflicts(requests, id)
+
 @csrf_exempt
 def conflicts(requests, id):
     versione = Version.objects.get(pk=id)
     return JsonResponse(getConflicts(versione))
 
-'''
-def checkAndMerge(versione, apply_patch=False):
-    if versione.patch == "RECONCILIATED":
-        return {"conflicts": True, "version_id": versione.id, "failed_patches": [], "success_patches": [], "patch_text":versione.patch, "details": {}}
-    failed_patches = []
-    success_patches = []
-    if versione.parent:
-        patch = dmp.patch_fromText(versione.patch)
-        res_patch =  dmp.patch_apply(patch, versione.parent.content)
-        reconciliable =  reduce(lambda a,b: a and b, res_patch[1], True)
-        
-        for i,p in enumerate(patch):
-            print ("PATCH RESULT", p.diffs)
-            diffs = [[int(a[0]),a[1]] for a in p.diffs]
-            if not res_patch[1][i]:
-                failed_patches.append(diffs)
-            else:
-                success_patches.append(diffs)
-        
-        print("failed_patches",failed_patches)
-        parent_content = res_patch[0]
-    else:
-        parent_content = ""
-
-    details = {}
-    if failed_patches:
-        reconciliable = False
-    else:
-        reconciliable = True
-        if apply_patch:
-            versione.parent.content = parent_content
-            versione.parent.save()
-            versione.patch = "RECONCILIATED"
-            versione.title = versione.title + "__reconciliated"
-            versione.save()
-            details = versionDetails(versione.parent)
-    
-    return {"conflicts": not reconciliable, "version_id": versione.id, "failed_patches": failed_patches, "success_patches": success_patches, "patch_text":versione.patch, "details": details}
-
-@csrf_exempt
-def check(request, id ):
-    versione = Version.objects.get(pk=id)
-    return JsonResponse(checkAndMerge(versione, apply_patch=False))
-'''
+class merge_restricted(JSONWebTokenAuthMixin, View):
+    def get(self, request, id):
+        return merge(requests, id)
 
 @csrf_exempt
 def merge(request, id ):
@@ -148,43 +115,6 @@ def merge(request, id ):
     return JsonResponse({"result":"ko", "error": "the version has conflicts. Can't merge"}, status=500)
 
 '''
-@csrf_exempt
-def reconcile(request, id, ):
-    versione = Version.objects.get(pk=id)
-    patch = dmp.patch_fromText(versione.patch)
-    res_patch =  dmp.patch_apply(patch, versione.parent.content)
-    print ('RES PATCH',res_patch)
-    reconciled =  reduce(lambda a,b: a and b, res_patch[1], True)
-
-    #print ('VERSION_CANDIDATE:\n',res_patch[0], file=sys.stderr)
-
-    if reconciled:
-        return merge(request, id)
-    else:
-        res_diff3 = diff3(versione.content,res_patch[0],versione.parent.content)
-        res_merge3_obj = merge3(versione.content,res_patch[0],versione.parent.content)
-        res_merge3 = "".join(res_merge3_obj["body"])
-        print ('VERSION_CONFLICT 3:\n',res_merge3, file=sys.stderr)
-        if SEPARATORS[1] in res_merge3:
-            keep1 = res_merge3.split(SEPARATORS[3])
-            keep2 = keep1[1].split(SEPARATORS[1])
-            res_merge2 = keep1[0]+SEPARATORS[1]+keep2[1]
-        else:
-            res_merge2 = res_merge3
-        print ('VERSION_CONFLICT 2:\n',res_merge2, file=sys.stderr)
-        #conflicted = Version()
-        #conflicted.parent = versione.parent
-        #conflicted.base = versione.parent.content
-        #conflicted.patch = "CONFLICTED"
-        #conflicted.content = res_merge2
-        #conflicted.title = versione.title + "__conflicted"
-        #conflicted.save()
-        redirect = conflicted
-
-    return JsonResponse({"reconciled":reconciled,"parent_id":versione.parent.pk,"reconcileTarget":res_patch[0], "reconcileSource": versione.parent.content})
-'''
-
-'''
 def edit(request, id):
     versione = Version.objects.get(pk=id)
     return render(request, 'editor.html', {"version": versione, "content_html": markdown(versione.content)})
@@ -205,7 +135,11 @@ def docx(request, id):
 @csrf_exempt
 def pdf(request, id):
     return download(request, 'pdf', id)
-    
+
+class odt_restricted(JSONWebTokenAuthMixin, View):
+    def get(self, request, id):
+        return odt(requests, id)
+
 @csrf_exempt
 def odt(request, id):
     return download(request, 'odt', id)
@@ -271,6 +205,10 @@ def download(request, format, id):
     response['Content-Disposition'] = 'attachment; filename=%s.%s' % (versione.title,format)
     return response
 
+class upload_restricted(JSONWebTokenAuthMixin, View):
+    def post(self, request, id):
+        return upload(request, id)
+
 @csrf_exempt
 def upload(request, id):
     if request.method == 'POST':
@@ -294,10 +232,18 @@ def upload(request, id):
         versione.save()
         return JsonResponse({"result": "OK", "version_id":versione.pk})
 
+class details_restricted(JSONWebTokenAuthMixin, View):
+    def get(self, request, id):
+        return details(requests, id)
+
 @csrf_exempt
 def details(request, id):
     versione = Version.objects.get(pk=id)
     return JsonResponse(versionDetails(versione))
+
+class delete_restricted(JSONWebTokenAuthMixin, View):
+    def get(self, request, id):
+        return delete(requests, id)
 
 @csrf_exempt
 def delete(request, id):
@@ -306,11 +252,14 @@ def delete(request, id):
     versione.delete()
     return JsonResponse({"deleted": "ok", "deleted_version": deleted })
 
+class vlist_restricted(JSONWebTokenAuthMixin, View):
+    def get(self, request, id):
+        return vlist(requests, id)
+
 @csrf_exempt
 def vlist(request, fromId):
     return vtree(request, fromId, asList = True)
 
-@csrf_exempt
 def getVersionObject(v):
     return {
         "title": v.title,
@@ -322,6 +271,10 @@ def getVersionObject(v):
         "reconciliated": v.patch == "RECONCILIATED",
         "master": False if v.parent else True
     }    
+
+class vtree_restricted(JSONWebTokenAuthMixin, View):
+    def get(self, request, fromId, asList = False):
+        return vtree(request, fromId, asList)
 
 @csrf_exempt
 def vtree(request, fromId, asList = False):
@@ -351,7 +304,10 @@ def vtree(request, fromId, asList = False):
         tree.append(traverse_nodes(node))
 
     return JsonResponse({"versions":tree})
-    
+
+class save_restricted(JSONWebTokenAuthMixin, View):
+    def post(self, request):
+        return save(request)
 
 @csrf_exempt
 def save(request):
