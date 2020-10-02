@@ -10,6 +10,9 @@ from .conflicts import getConflicts
 from markdown import markdown
 import pypandoc
 
+from django.views.generic import View
+from jwt_auth.mixins import JSONWebTokenAuthMixin
+
 from django.core.files.temp import NamedTemporaryFile
 from django.core import files
 
@@ -26,6 +29,14 @@ from shutil import copyfile
 from io import StringIO, BytesIO
 
 dmp = dmp_module.diff_match_patch()
+
+
+class RestrictedView(JSONWebTokenAuthMixin, View):
+    def get(self, request, id):
+        versione = Version.objects.get(pk=id)
+        details = versionDetails(versione)
+        details["username"] = request.user.username
+        return JsonResponse(details)
 
 def conta_rami(versione):
     rami = Version.objects.filter(parent__pk=versione.pk)

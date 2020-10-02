@@ -3,6 +3,9 @@ from . import views
 
 from django.conf import settings
 import django.contrib.auth.views
+from django.urls import path
+
+from jwt_auth import views as jwt_auth_views
 
 
 urlpatterns = [
@@ -19,6 +22,9 @@ urlpatterns = [
     url(r'^save/$', views.save, name='save'),
     url(r'^tree/(\d+)?/$', views.vtree, name='vtree'),
     url(r'^list/(\d+)?/$', views.vlist, name='vlist'),
+    path("token-auth/", jwt_auth_views.jwt_token),
+    path("token-refresh/", jwt_auth_views.refresh_jwt_token),
+    path("protected-url/", views.RestrictedView.as_view()),
     #url(r'^check/(\d+)/$', views.checkAndMerge, name='checkVersion'),
 ]
 
