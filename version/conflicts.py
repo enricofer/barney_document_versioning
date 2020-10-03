@@ -50,11 +50,20 @@ def getConflicts (versione, quick=False):
             else:
                 conflicted_content = res_merge3
 
-    return {
-        "conflicts": len(failed_patches),
-        "failed_patches": failed_patches,
-        "success_patches": success_patches,
-        "source_content": source_content,
-        "target_content": versione.parent.content,
-        "conflicted_content": conflicted_content
-    }
+        return {
+            "conflicts": len(failed_patches),
+            "failed_patches": failed_patches,
+            "success_patches": success_patches,
+            "source_content": source_content,
+            "target_content": versione.parent.content,
+            "conflicted_content": conflicted_content
+        }
+    else:
+        return {
+            "conflicts": 0,
+            "failed_patches": [],
+            "success_patches": [],
+            "source_content": "",
+            "target_content": "",
+            "conflicted_content": "Master version " + versione.modify_date.strftime("%Y-%m-%dT%H:%M:%S")
+        }

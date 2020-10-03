@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 from markymark.fields import MarkdownField
 
@@ -25,6 +26,7 @@ class Version(models.Model):
         ('History', 'History'),
         ('Reconciled', 'Reconciled'),
         ('Merged', 'Merged'),
+        ('Merqe_req', 'Merge Request'),
     ]
 
     title = models.CharField(max_length=100)
@@ -35,31 +37,25 @@ class Version(models.Model):
     conflicts = models.IntegerField(default=0)
     status = models.CharField(choices=VERSION_CHOICES, default='Master', max_length=12)
     content = MarkdownField(blank=True, null=True)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    locked = models.BooleanField(default=False)
+    private = models.BooleanField(default=True)
 
     class Meta:
-        verbose_name = 'Versions'
-        verbose_name_plural = 'Version'
+        verbose_name = 'Version'
+        verbose_name_plural = 'Versions'
 
     def save(self, *args, **kwargs):
         if self.status == 'History':
             return
         if self.status in ('Merged', ):
             self.status = 'History'
-        '''
-        conflicts_check = getConflicts(self, quick=True)
-        print ('conflicts_check:', conflicts_check, file=sys.stderr)
-        self.conflicts = conflicts_check["conflicts"]
-        if conflicts_check["conflicts"] == 0:
-            self.status = 'Conflicted'
-        else:
-            self.status = 'Version'
-        '''
+            
         if self.parent: 
             patch_obj = dmp.patch_make(self.base, self.content)
         else:
             patch_obj = dmp.patch_make("", self.content)
             self.status = 'Master'
-        print ('patch:',dmp.patch_toText(patch_obj), file=sys.stderr)
         self.patch = dmp.patch_toText(patch_obj)
         super(Version, self).save(*args, **kwargs)
 

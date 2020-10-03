@@ -30,9 +30,8 @@ from io import StringIO, BytesIO
 
 dmp = dmp_module.diff_match_patch()
 
-def conta_rami(versione):
-    rami = Version.objects.filter(parent__pk=versione.pk)
-    print ('rami:',rami, len(rami), file=sys.stderr)
+def conta_rami(v):
+    rami = Version.objects.filter(parent__pk=v.pk)
     return len(rami)
 
 def versionDetails(v):
@@ -61,18 +60,36 @@ class new_version_restricted(JSONWebTokenAuthMixin, View):
 # Create your views here.
 def new_version(request, master_id):
     documento_master = Version.objects.get(pk=master_id)
-    versione = Version()
-    if versione.parent:
-        versione.status = 'master'
+    v = Version()
+    if v.parent:
+        v.status = 'master'
     else:
-        versione.status = 'version'
-    versione.parent = documento_master
-    versione.title = "ramo-%s" % str(conta_rami(documento_master) + 1)
-    versione.base = documento_master.content
-    versione.content = documento_master.content
-    print ('patch:',versione, file=sys.stderr)
-    versione.save()
-    return JsonResponse(versionDetails(versione))
+        v.status = 'version'
+    v.owner = request.user
+    v.parent = documento_master
+    v.title = "ramo-%s" % str(conta_rami(documento_master) + 1)
+    v.base = documento_master.content
+    v.content = documento_master.content
+    v.save()
+    return JsonResponse(versionDetails(v))
+
+class lock_restricted(JSONWebTokenAuthMixin, View):
+    def get(self, request, id):
+        return toggle_lock(request, id, True)
+
+class unlock_restricted(JSONWebTokenAuthMixin, View):
+    def get(self, request, id):
+        return toggle_lock(request, id, False)
+
+@csrf_exempt
+def toggle_lock(request, id, state):
+    if v.owner == request.user:
+        v = Version.objects.get(pk=master_id)
+        v.locked = state
+        v.save()
+        return JsonResponse({"action": "lock" if state else "unlock", "result": 'ok', "version_id": v.pk})
+    else:
+        return JsonResponse({"action": "lock" if state else "unlock", "result": "Error: can't lock/unlock. Current version does not belong to current user", "version_id": v.pk}, status=500 )
 
 class conflicts_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
@@ -80,8 +97,8 @@ class conflicts_restricted(JSONWebTokenAuthMixin, View):
 
 @csrf_exempt
 def conflicts(request, id):
-    versione = Version.objects.get(pk=id)
-    return JsonResponse(getConflicts(versione))
+    v = Version.objects.get(pk=id)
+    return JsonResponse(getConflicts(v))
 
 class merge_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
@@ -89,30 +106,31 @@ class merge_restricted(JSONWebTokenAuthMixin, View):
 
 @csrf_exempt
 def merge(request, id ):
-    versione = Version.objects.get(pk=id)
-    if not versione.parent:
-       return JsonResponse({"result":"ko", "error": "This is master version without merge target. Can't merge"}, status=500) 
-    if versione.conflicts == 0:
-        patch = dmp.patch_fromText(versione.patch)
-        res_patch =  dmp.patch_apply(patch, versione.parent.content)
+    v = Version.objects.get(pk=id)
+    if not v.parent:
+        return JsonResponse({"action": "merge", "result": "Error: This is master version without merge target. Can't merge", "version_id": v.pk}, status=500) 
+    if v.parent.owner != request.user:
+        return JsonResponse({"action": "merge", "result": "Parent version does not belong to current user. Can't merge", "version_id": v.pk}, status=500) 
+    if v.conflicts == 0:
+        patch = dmp.patch_fromText(v.patch)
+        res_patch =  dmp.patch_apply(patch, v.parent.content)
         reconciliable =  reduce(lambda a,b: a and b, res_patch[1], True)
         if reconciliable:
-            versione.parent.content = res_patch[0]
-            versione.parent.save()
-            versione.patch = "MERGED"
-            versione.status = 'Merged'
-            versione.title = versione.title + "__merged"
-            versione.save()
-            details = versionDetails(versione.parent)
-            print("MERGE", details)
-            return JsonResponse({"parent_id": versione.parent.pk })
+            v.parent.content = res_patch[0]
+            v.parent.save()
+            v.patch = "MERGED"
+            v.status = 'Merged'
+            v.title = v.title + "__merged"
+            v.save()
+            details = versionDetails(v.parent)
+            return JsonResponse({"parent_id": v.parent.pk })
 
     return JsonResponse({"result":"ko", "error": "the version has conflicts. Can't merge"}, status=500)
 
 '''
 def edit(request, id):
-    versione = Version.objects.get(pk=id)
-    return render(request, 'editor.html', {"version": versione, "content_html": markdown(versione.content)})
+    v = Version.objects.get(pk=id)
+    return render(request, 'editor.html', {"version": v, "content_html": markdown(v.content)})
 '''
 
 def html2pdf (html):
@@ -144,23 +162,23 @@ def rebase(request):
     if request.method == 'POST':
         body = request.body.decode('utf-8')
         postData = json.loads(body)
-        versione_current = Version.objects.get(pk=postData["pk"])
-        versione = Version()
-        versione.title = versione_current.title + "__reconciled"
-        versione.parent = versione_current.parent
-        versione.base = postData["new_base"]
-        versione.content = postData["new_content"]
-        check = getConflicts(versione)
+        v_current = Version.objects.get(pk=postData["pk"])
+        v = Version()
+        v.title = v_current.title + "__reconciled"
+        v.parent = v_current.parent
+        v.owner = request.user
+        v.base = postData["new_base"]
+        v.content = postData["new_content"]
+        check = getConflicts(v)
         if check["conflicts"] == 0:
-            versione.status = 'Reconciled'
-            versione.conflicts = 0
-            versione.save()
-            print ("REBASE", versione)
-            return JsonResponse({"result":"ok", "version_id": versione.pk, "error": "rebased"})
+            v.status = 'Reconciled'
+            v.conflicts = 0
+            v.save()
+            return JsonResponse({"action": "rebase", "result":"ok", "version_id": v.pk})
         else:
-            return JsonResponse({"result":"ko", "version_id": versione_current.pk, "error": "Can't rebase. Content has conflicts"}, status=500)
+            return JsonResponse({"action": "rebase", "result":"Error: can't rebase. Content has merge conflicts with parent", "version_id": v_current.pk}, status=500)
     else:
-        return JsonResponse({"result":"ko", "error": "wrong http method"}, status=500)
+        return JsonResponse({"action": "rebase", "result":"Error: wrong http method"}, status=500)
 
 
 @csrf_exempt
@@ -175,11 +193,11 @@ def download(request, format, id):
     basedir = tempfile.mkdtemp()
     md_file_path = os.path.join(basedir, "input.md")
     out_file_path = os.path.join(basedir, "output." + format)
-    versione = Version.objects.get(pk=id)
+    v = Version.objects.get(pk=id)
     #FASE1 generazione del file odt del contenuto corrente
-    pypandoc.convert_text(versione.content, format, format='md', outputfile=out_file_path)
+    pypandoc.convert_text(v.content, format, format='md', outputfile=out_file_path)
 
-    if versione.parent and format == 'odt':
+    if v.parent and format == 'odt':
         #FASE2_1 copia di backup
 
         #FASE2 scompattamento del file odt
@@ -188,14 +206,13 @@ def download(request, format, id):
             zip_ref.extractall(dezipDir)
         #FASE3 creazione directory Versions dentro directory zippata
         dezipVersionDir = os.path.join(dezipDir, "Versions")
-        print ("dezipVersionDir", dezipVersionDir)
         os.mkdir(dezipVersionDir)
         #FASE4 generazione del file odt del contenuto master
         master_file = os.path.join(dezipVersionDir, "Version1")
-        pypandoc.convert_text(versione.parent.content, format, format='md', outputfile=master_file)
+        pypandoc.convert_text(v.parent.content, format, format='md', outputfile=master_file)
         #FASE5 creazione file versionsList.xml
         template = """<?xml version="1.0" encoding="UTF-8"?><VL:version-list xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:VL="http://openoffice.org/2001/versions-list"><VL:version-entry VL:title="Version1" VL:comment="%s" VL:creator="user" dc:date-time="%s"/></VL:version-list>"""
-        versionListTxt = template % ("user", versione.parent.modify_date.strftime("%Y-%m-%dT%H:%M:%S")) #2020-09-28T08:58:50
+        versionListTxt = template % ("user", v.parent.modify_date.strftime("%Y-%m-%dT%H:%M:%S")) #2020-09-28T08:58:50
         versionListFilePath = os.path.join(dezipDir, "VersionList.xml")
         with open(versionListFilePath,'w') as versionListFile:
             versionListFile.write(versionListTxt)
@@ -212,7 +229,7 @@ def download(request, format, id):
         #FASE8 modifica stili
         os.remove(os.path.join(dezipDir,"styles.xml"))
         copyfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"styles.xml"), os.path.join(dezipDir,"styles.xml"))
-        #FASE8 rimozione odt versione corrente
+        #FASE8 rimozione odt v corrente
         os.remove(out_file_path)
         #FASE9 creazione nuovo odt da compressione directory precedenti
         out_file = zipfile.ZipFile(out_file_path, 'w', zipfile.ZIP_STORED)
@@ -221,7 +238,7 @@ def download(request, format, id):
 
     stream = open(out_file_path, "rb")
     response = HttpResponse(stream, content_type="application/vnd.openxmlformats") #application/pdf
-    response['Content-Disposition'] = 'attachment; filename=%s.%s' % (versione.title,format)
+    response['Content-Disposition'] = 'attachment; filename=%s.%s' % (v.title,format)
     return response
 
 class upload_restricted(JSONWebTokenAuthMixin, View):
@@ -231,14 +248,19 @@ class upload_restricted(JSONWebTokenAuthMixin, View):
 @csrf_exempt
 def upload(request, id):
     if request.method == 'POST':
-        if id:
-            versione = Version.objects.get(pk=id)
-        else:
-            versione = Version()
         upload = request.FILES['uploaded_content']
-        print ("MIMETYPE", upload.content_type)
+        print ("MIMETYPE", upload)
+        if id:
+            v = Version.objects.get(pk=id)
+            if v.owner != request.user:
+                return JsonResponse({"action": "rebase", "result":"Error: Can't upload. Current version does not belong to current user", "version_id": v_current.pk}, status=500)
+        else:
+            v = Version()
+            v.title = upload.name
+            v.owner = request.owner
+
         if upload.content_type in ("text/markdown", "text/plain"):
-            versione.content = upload.read()
+            v.content = upload.read()
         elif upload.content_type in ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ):
             basedir = tempfile.mkdtemp()
             md_file = os.path.join(basedir, "input.md")
@@ -247,9 +269,9 @@ def upload(request, id):
                 dest.write(upload.read())
             output = pypandoc.convert(in_file, "md", format='docx', outputfile=md_file)
             with open(md_file,"r") as md:
-                versione.content = md.read()
-        versione.save()
-        return JsonResponse({"result": "OK", "version_id":versione.pk})
+                v.content = md.read()
+        v.save()
+        return JsonResponse({"result": "OK", "version_id":v.pk})
 
 class details_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
@@ -257,8 +279,12 @@ class details_restricted(JSONWebTokenAuthMixin, View):
 
 @csrf_exempt
 def details(request, id):
-    versione = Version.objects.get(pk=id)
-    return JsonResponse(versionDetails(versione))
+    v = Version.objects.get(pk=id)
+    det = versionDetails(v)
+    det["canEdit"] = v.owner == request.user
+    det["ownername"] = v.owner.username
+    det["username"] = request.user.username
+    return JsonResponse(det)
 
 class delete_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
@@ -266,10 +292,12 @@ class delete_restricted(JSONWebTokenAuthMixin, View):
 
 @csrf_exempt
 def delete(request, id):
-    versione = Version.objects.get(pk=id)
-    deleted = model_to_dict(versione)
-    versione.delete()
-    return JsonResponse({"deleted": "ok", "deleted_version": deleted })
+    if v.owner != request.user:
+        return JsonResponse({"action": "delete", "result":"Error: Can't delete. Current version does not belong to current user", "version_id": v.pk}, status=500)
+    v = Version.objects.get(pk=id)
+    deleted = model_to_dict(v)
+    v.delete()
+    return JsonResponse({"action": "delete", "result": "ok", "deleted_version": deleted })
 
 class vlist_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
@@ -288,7 +316,9 @@ def getVersionObject(v):
         "parent_name": v.parent.title if v.parent else "",
         "parent_id": v.parent.pk if v.parent else -1,
         "conflicted": v.conflicts > 0,
-        "reconciliated": v.patch == "RECONCILIATED",
+        "owner": v.owner.username,
+        "private": v.private,
+        "locked": v.locked,
         "master": False if v.parent else True
     }    
 
@@ -300,6 +330,9 @@ class vtree_restricted(JSONWebTokenAuthMixin, View):
 def vtree(request, fromId, asList = False):
     tree = []
 
+    def allowed(node):
+        return node.owner == request.user or not node.private
+
     def traverse_nodes(node):
         node_content = getVersionObject(node)
         children = Version.objects.filter(parent__pk=node.pk)
@@ -310,20 +343,21 @@ def vtree(request, fromId, asList = False):
         node_content["children"] = []
 
         for child in children:
-            if asList:
-                tree.append(traverse_nodes(child))
-            else:
-                node_content["children"].append(traverse_nodes(child))
+            if allowed(child):
+                if asList:
+                    tree.append(traverse_nodes(child))
+                else:
+                    node_content["children"].append(traverse_nodes(child))
         return node_content
     if fromId:
         root_nodes = Version.objects.filter(pk=fromId)
     else:
         root_nodes = Version.objects.filter(parent__pk=None)
-    print ('root_nodes:',root_nodes, file=sys.stderr)
     for node in root_nodes:
-        tree.append(traverse_nodes(node))
+        if allowed(node):
+            tree.append(traverse_nodes(node))
 
-    return JsonResponse({"versions":tree})
+    return JsonResponse({"action":"tree", "versions":tree})
 
 class save_restricted(JSONWebTokenAuthMixin, View):
     def post(self, request):
@@ -336,17 +370,20 @@ def save(request):
         postData = json.loads(body)
         print ('postData:\n',postData["pk"], file=sys.stderr)
         if postData["pk"] > 0:
-            versione = Version.objects.get(pk=postData["pk"])
+            v = Version.objects.get(pk=postData["pk"])
+            if v.owner != request.user:
+                return JsonResponse({ "action":"save", "result":"Error: can't save. Current version does not belong to current user", "version_id": v.pk }, status=500)
         else:
-            versione = Version()
-        if versione.patch == "RECONCILIATED":
-            return JsonResponse({"result":"ko", "version_id": versione.pk, "error": "Reconciliated Versions cannot be modified"}, status=500)
-        versione.content = postData['content']
-        print ('NEW_CONTENT:\n',postData['content'], file=sys.stderr)
-        versione.title = postData['title']
-        versione.save()
-        return JsonResponse({"result":"ok", "version_id": versione.pk, "error": ""})
+            v = Version()
+            v.owner = request.user
+        if v.patch == "RECONCILIATED":
+            return JsonResponse({ "action":"save", "result":"Error: Reconciliated Versions cannot be modified", "version_id": v.pk }, status=500)
+        v.content = postData['content']
+        v.title = postData['title']
+        v.private = postData['private']
+        v.save()
+        return JsonResponse({"action":"save", "result":"ok", "version_id": v.pk})
     else:
-        return JsonResponse({"result":"ko", "error": "wrong http method"}, status=500)
+        return JsonResponse({"action":"save", "result":"Error: wrong http method"}, status=500)
 
 
