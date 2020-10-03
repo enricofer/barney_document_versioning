@@ -30,14 +30,6 @@ from io import StringIO, BytesIO
 
 dmp = dmp_module.diff_match_patch()
 
-
-class RestrictedView(JSONWebTokenAuthMixin, View):
-    def get(self, request, id):
-        versione = Version.objects.get(pk=id)
-        details = versionDetails(versione)
-        details["username"] = request.user.username
-        return JsonResponse(details)
-
 def conta_rami(versione):
     rami = Version.objects.filter(parent__pk=versione.pk)
     print ('rami:',rami, len(rami), file=sys.stderr)
@@ -64,7 +56,7 @@ def versionDetails(v):
 
 class new_version_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
-        return new_version(requests, id)
+        return new_version(request, id)
 
 # Create your views here.
 def new_version(request, master_id):
@@ -84,16 +76,16 @@ def new_version(request, master_id):
 
 class conflicts_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
-        return conflicts(requests, id)
+        return conflicts(request, id)
 
 @csrf_exempt
-def conflicts(requests, id):
+def conflicts(request, id):
     versione = Version.objects.get(pk=id)
     return JsonResponse(getConflicts(versione))
 
 class merge_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
-        return merge(requests, id)
+        return merge(request, id)
 
 @csrf_exempt
 def merge(request, id ):
@@ -141,7 +133,7 @@ def pdf(request, id):
 
 class odt_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
-        return odt(requests, id)
+        return odt(request, id)
 
 @csrf_exempt
 def odt(request, id):
@@ -261,7 +253,7 @@ def upload(request, id):
 
 class details_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
-        return details(requests, id)
+        return details(request, id)
 
 @csrf_exempt
 def details(request, id):
@@ -270,7 +262,7 @@ def details(request, id):
 
 class delete_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
-        return delete(requests, id)
+        return delete(request, id)
 
 @csrf_exempt
 def delete(request, id):
@@ -281,7 +273,7 @@ def delete(request, id):
 
 class vlist_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
-        return vlist(requests, id)
+        return vlist(request, id)
 
 @csrf_exempt
 def vlist(request, fromId):
