@@ -1,4 +1,5 @@
 Django==2.0.13
+webstack-django-jwt-auth==1.3.0
 asgiref
 click
 commonmark
@@ -17,3 +18,4 @@ pypandoc
 pytz
 six
 sqlparse
+
