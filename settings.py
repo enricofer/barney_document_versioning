@@ -10,6 +10,9 @@ SECRET_KEY = 'legaltextexamples'
 
 USE_TZ = True
 
+JWT_ALLOW_REFRESH = True
+JWT_EXPIRATION_DELTA = datetime.timedelta(hours=2)
+
 CORS_ORIGIN_ALLOW_ALL = True
 
 if socket.gethostname() == "sit008798":

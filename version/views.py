@@ -38,6 +38,16 @@ def versionDetails(v):
     vdict = model_to_dict(v)
     children = Version.objects.filter(parent__pk=v.pk)
     vdict["hasChildren"] = True if children else False
+    vdict["mergeReq"] = []
+    vdict["hasMergeReq"] = False
+    for child in children:
+        if child.status == 'Merge_req':
+            vdict["mergeReq"].append({
+                "id": child.pk,
+                "title": child.title
+            })
+    if vdict["mergeReq"]:
+        vdict["hasMergeReq"] = True
     vdict["parentTitle"] = ""
     if v.parent:
         vdict["parentTitle"] = v.parent.title
@@ -99,6 +109,40 @@ class conflicts_restricted(JSONWebTokenAuthMixin, View):
 def conflicts(request, id):
     v = Version.objects.get(pk=id)
     return JsonResponse(getConflicts(v))
+
+class reset_merge_request_restricted(JSONWebTokenAuthMixin, View):
+    def get(self, request, id):
+        return reset_merge_request(request, id)
+
+@csrf_exempt
+def reset_merge_request(request, id ):
+    v = Version.objects.get(pk=id)
+    if v.status == 'Merge_req':
+            v.status = 'Version'
+            v.save()
+            return JsonResponse({"action":"reset_merge request","result":"ok", "version_id": v.pk })
+
+class merge_request_restricted(JSONWebTokenAuthMixin, View):
+    def get(self, request, id):
+        return merge_request(request, id)
+
+@csrf_exempt
+def merge_request(request, id ):
+    v = Version.objects.get(pk=id)
+    if not v.parent:
+        return JsonResponse({"action": "merge", "result": "Error: This is master version without merge target. Can't create merge request", "version_id": v.pk}, status=500) 
+    if v.conflicts == 0:
+        patch = dmp.patch_fromText(v.patch)
+        res_patch =  dmp.patch_apply(patch, v.parent.content)
+        reconciliable =  reduce(lambda a,b: a and b, res_patch[1], True)
+        if reconciliable:
+            v.status = 'Merge_req'
+            v.private= False
+            v.save()
+            details = versionDetails(v.parent)
+            return JsonResponse({"action":"merge request","version_id": v.pk })
+
+    return JsonResponse({"action": "merge", "result":"ko", "error": "the version has conflicts. Can't create merge request", "version_id": v.pk}, status=500)
 
 class merge_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
@@ -257,21 +301,27 @@ def upload(request, id):
         else:
             v = Version()
             v.title = upload.name
-            v.owner = request.owner
+            v.owner = request.user
 
         if upload.content_type in ("text/markdown", "text/plain"):
             v.content = upload.read()
-        elif upload.content_type in ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ):
+        elif upload.content_type in ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.oasis.opendocument.text"):
+            if upload.content_type == "application/vnd.oasis.opendocument.text":
+                ext = 'odt'
+            else:
+                ext = 'docx'
             basedir = tempfile.mkdtemp()
             md_file = os.path.join(basedir, "input.md")
-            in_file = os.path.join(basedir, "output.docx")
+            in_file = os.path.join(basedir, "output." + ext)
             with open(in_file, 'wb') as dest:
                 dest.write(upload.read())
-            output = pypandoc.convert(in_file, "md", format='docx', outputfile=md_file)
+            output = pypandoc.convert(in_file, "md", format=ext, outputfile=md_file)
             with open(md_file,"r") as md:
                 v.content = md.read()
+        else:
+            return JsonResponse({"action": "delete", "result":"Error: Can't upload. document type is not supported"}, status=500)
         v.save()
-        return JsonResponse({"result": "OK", "version_id":v.pk})
+        return JsonResponse({"action": "upload", "result": "ok", "version_id":v.pk})
 
 class details_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
@@ -282,6 +332,10 @@ def details(request, id):
     v = Version.objects.get(pk=id)
     det = versionDetails(v)
     det["canEdit"] = v.owner == request.user
+    if v.parent:
+        det["canMerge"] = v.parent.owner == request.user
+    else:
+        det["canMerge"] = False
     det["ownername"] = v.owner.username
     det["username"] = request.user.username
     return JsonResponse(det)
@@ -292,9 +346,9 @@ class delete_restricted(JSONWebTokenAuthMixin, View):
 
 @csrf_exempt
 def delete(request, id):
+    v = Version.objects.get(pk=id)
     if v.owner != request.user:
         return JsonResponse({"action": "delete", "result":"Error: Can't delete. Current version does not belong to current user", "version_id": v.pk}, status=500)
-    v = Version.objects.get(pk=id)
     deleted = model_to_dict(v)
     v.delete()
     return JsonResponse({"action": "delete", "result": "ok", "deleted_version": deleted })
@@ -330,8 +384,26 @@ class vtree_restricted(JSONWebTokenAuthMixin, View):
 def vtree(request, fromId, asList = False):
     tree = []
 
+    def genealogy(node):
+        genealogy = []
+        while node.parent:
+            genealogy.append[node.parent]
+            node = node.parent
+        return genealogy
+
     def allowed(node):
-        return node.owner == request.user or not node.private
+        return node.owner == request.user or traverse_allowed(node)
+
+    def traverse_allowed(node, allowed_flag=False):
+        children = Version.objects.filter(parent__pk=node.pk)
+        if children:
+            for child in children:
+                return allowed(child)
+        else:
+            if not allowed_flag and not node.private:
+                return True
+            else:
+                return False
 
     def traverse_nodes(node):
         node_content = getVersionObject(node)
@@ -349,6 +421,7 @@ def vtree(request, fromId, asList = False):
                 else:
                     node_content["children"].append(traverse_nodes(child))
         return node_content
+
     if fromId:
         root_nodes = Version.objects.filter(pk=fromId)
     else:
