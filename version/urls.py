@@ -9,8 +9,10 @@ from jwt_auth import views as jwt_auth_views
 
 
 urlpatterns = [
+    url(r'^$', views.frontend, name='frontend'),
     url(r'^new/(\d+)/$', views.new_version_restricted.as_view(), name='new_version'),
     url(r'^conflicts/(\d+)/$', views.conflicts_restricted.as_view(), name='conflicts'),
+    url(r'^rebase/$', views.rebase_restricted.as_view(), name='rebase'),
     url(r'^merge/(\d+)/$', views.merge_restricted.as_view(), name='merge'),
     url(r'^mergereq/(\d+)/$', views.merge_request_restricted.as_view(), name='merge_request'),
     url(r'^mergereset/(\d+)/$', views.reset_merge_request_restricted.as_view(), name='merge_reset'),
