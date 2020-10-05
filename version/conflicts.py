@@ -40,7 +40,7 @@ def getConflicts (versione, quick=False):
         source_content = res_patch[0]
         if len(failed_patches) > 0 and not quick:
             #res_merge3_obj = merge3(versione.content,res_patch[0],versione.parent.content)
-            res_merge3_obj = merge3(versione.content,versione.parent.content,versione.base)
+            res_merge3_obj = merge3(res_patch[0],versione.parent.content,versione.base)
             res_merge3 = "".join(res_merge3_obj["body"])
             print ('VERSION_CONFLICT 3:\n',res_merge3)
             if SEPARATORS[1] in res_merge3:

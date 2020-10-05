@@ -63,6 +63,10 @@ def versionDetails(v):
                 v.save()
     return vdict
 
+# Create your views here.
+def frontend(request):
+    return HttpResponseRedirect("/static/version/frontend/index.html")
+
 class new_version_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
         return new_version(request, id)
@@ -81,7 +85,7 @@ def new_version(request, master_id):
     v.base = documento_master.content
     v.content = documento_master.content
     v.save()
-    return JsonResponse(versionDetails(v))
+    return details(request, v.pk)
 
 class lock_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
@@ -200,6 +204,10 @@ class odt_restricted(JSONWebTokenAuthMixin, View):
 @csrf_exempt
 def odt(request, id):
     return download(request, 'odt', id)
+
+class rebase_restricted(JSONWebTokenAuthMixin, View):
+    def post(self, request):
+        return rebase(request)
 
 @csrf_exempt
 def rebase(request):
@@ -396,18 +404,15 @@ def vtree(request, fromId, asList = False):
 
     def traverse_allowed(node, allowed_flag=False):
         children = Version.objects.filter(parent__pk=node.pk)
-        if children:
+        allowed_flag = allowed_flag or not node.private
+        if not allowed_flag and children:
             for child in children:
-                return allowed(child)
-        else:
-            if not allowed_flag and not node.private:
-                return True
-            else:
-                return False
+                allowed_flag = allowed(child) or not node.private
+        return allowed_flag
 
     def traverse_nodes(node):
         node_content = getVersionObject(node)
-        children = Version.objects.filter(parent__pk=node.pk)
+        children = Version.objects.filter(parent__pk=node.pk).order_by("title")
         node_content["hasChildren"] = True if children else False
         node_content["text"] = node_content["title"]
         node_content["draggable"] = False
@@ -423,9 +428,9 @@ def vtree(request, fromId, asList = False):
         return node_content
 
     if fromId:
-        root_nodes = Version.objects.filter(pk=fromId)
+        root_nodes = Version.objects.filter(pk=fromId).order_by("title")
     else:
-        root_nodes = Version.objects.filter(parent__pk=None)
+        root_nodes = Version.objects.filter(parent__pk=None).order_by("title")
     for node in root_nodes:
         if allowed(node):
             tree.append(traverse_nodes(node))
