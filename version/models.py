@@ -3,10 +3,6 @@ from django.contrib.auth.models import User
 
 from markymark.fields import MarkdownField
 
-#from computedfields.models import ComputedFieldsModel, computed
-
-#from computed_property import ComputedTextField
-
 import diff_match_patch as dmp_module
 import sys
 import json

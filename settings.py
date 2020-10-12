@@ -42,11 +42,9 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.staticfiles',
     'django.contrib.messages',
-    'computedfields',
     'corsheaders',
-    'markymark',
+    #'markymark',
     'version',
-    'computed_property',
 )
 
 ALLOWED_HOSTS = '*'

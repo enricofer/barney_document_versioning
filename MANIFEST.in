@@ -1,0 +1,17 @@
+include LICENSE
+include README.md
+recursive-include version/static *
+recursive-include version/templates *
+recursive-include version/migrations *
+recursive-exclude warp_test *
+include version/admin.py
+include version/apps.py
+include version/conflicts.py
+include version/cors.py
+include version/diff3.py
+include version/models.py
+include version/styles.xml
+include version/test.py
+include version/tests.py
+include version/urls.py
+include version/views.py
