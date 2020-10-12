@@ -18,7 +18,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'Django',
-        'webstack-django-jwt-auth>=1.3.0',
+        'webstack-django-jwt-auth',
         'django-markymark',
         'diff-match-patch',
         'django-cors-headers',
