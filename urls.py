@@ -11,6 +11,6 @@ admin.autodiscover()
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^version/', include('version.urls')),
+    url(r'^version/', include('barney_version.urls')),
 ]
 

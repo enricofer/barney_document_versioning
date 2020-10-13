@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 ('conflicts', models.IntegerField(default=0)),
                 ('status', models.CharField(choices=[('Master', 'Master'), ('Version', 'Version'), ('Conflicted', 'Conflicted'), ('History', 'History'), ('Reconciled', 'Reconciled')], default='Master', max_length=12)),
                 ('content', markymark.fields.MarkdownField(blank=True, null=True)),
-                ('parent', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='version.Version')),
+                ('parent', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='barney_version.Version')),
             ],
             options={
                 'verbose_name': 'Versions',

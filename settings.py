@@ -44,7 +44,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'corsheaders',
     #'markymark',
-    'version',
+    'barney_version',
 )
 
 ALLOWED_HOSTS = '*'
