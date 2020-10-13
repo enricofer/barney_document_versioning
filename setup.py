@@ -22,6 +22,7 @@ setup(
         'django-markymark',
         'diff-match-patch',
         'django-cors-headers',
+        'pypandoc',
         'Markdown',
     ],
     include_package_data=True,
