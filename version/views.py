@@ -400,14 +400,23 @@ def vtree(request, fromId, asList = False):
         return genealogy
 
     def allowed(node):
-        return node.owner == request.user or traverse_allowed(node)
+        if q:
+            return (node.owner == request.user and q in node.title) or traverse_allowed(node)
+        else:
+            return  node.owner == request.user or traverse_allowed(node)
 
     def traverse_allowed(node, allowed_flag=False):
         children = Version.objects.filter(parent__pk=node.pk)
-        allowed_flag = allowed_flag or not node.private
+        if q:
+            allowed_flag = allowed_flag or (not node.private and q in node.title)
+        else:
+            allowed_flag = allowed_flag or not node.private
         if not allowed_flag and children:
             for child in children:
-                allowed_flag = allowed(child) or not node.private
+                if q:
+                    allowed_flag = allowed(child) or (not node.private and q in node.title)
+                else:
+                    allowed_flag = allowed(child) or not node.private
         return allowed_flag
 
     def traverse_nodes(node):
@@ -426,7 +435,8 @@ def vtree(request, fromId, asList = False):
                 else:
                     node_content["children"].append(traverse_nodes(child))
         return node_content
-
+    q = request.GET.get('q', None)
+    print ("QQQ", q)
     if fromId:
         root_nodes = Version.objects.filter(pk=fromId).order_by("title")
     else:
