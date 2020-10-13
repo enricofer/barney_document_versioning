@@ -4,10 +4,7 @@ from . import views
 from django.conf import settings
 import django.contrib.auth.views
 
-try:
-    from django.urls import path
-except:
-    from django.conf.urls import path
+#from django.urls import path
 
 from jwt_auth import views as jwt_auth_views
 
