@@ -30,8 +30,11 @@ urlpatterns = [
     url(r'^save/$', views.save_restricted.as_view(), name='save'),
     url(r'^tree/(\d+)?/$', views.vtree_restricted.as_view(), name='vtree'),
     url(r'^list/(\d+)?/$', views.vlist_restricted.as_view(), name='vlist'),
-    path("token-auth/", jwt_auth_views.jwt_token),
-    path("token-refresh/", jwt_auth_views.refresh_jwt_token)
+    url(r'^token-auth/$',jwt_auth_views.jwt_token),
+    url(r'^token-refresh/$',jwt_auth_views.refresh_jwt_token),
+
+    #path("token-auth/", jwt_auth_views.jwt_token),
+    #path("token-refresh/", jwt_auth_views.refresh_jwt_token)
     #url(r'^check/(\d+)/$', views.checkAndMerge, name='checkVersion'),
 ]
 
