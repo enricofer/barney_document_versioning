@@ -35,6 +35,7 @@ def conta_rami(v):
     return len(rami)
 
 def versionDetails(v):
+    print ("VERSION DETAIL", v.title, v.status)
     vdict = model_to_dict(v)
     children = Version.objects.filter(parent__pk=v.pk)
     vdict["hasChildren"] = True if children else False
@@ -51,10 +52,11 @@ def versionDetails(v):
     vdict["parentTitle"] = ""
     if v.parent:
         vdict["parentTitle"] = v.parent.title
-        if v.status != 'History':
+
+        if not v.status in ('History', 'Merge_req'):
+            print("NO MERGE REQ???", v.status)
             conflicts_check = getConflicts(v, quick=True)
             if conflicts_check != v.conflicts:
-                print ('conflicts_check:', conflicts_check, file=sys.stderr)
                 v.conflicts = conflicts_check["conflicts"]
                 if conflicts_check["conflicts"] == 0:
                     v.status = 'Version'
@@ -247,7 +249,7 @@ def download(request, format, id):
     out_file_path = os.path.join(basedir, "output." + format)
     v = Version.objects.get(pk=id)
     #FASE1 generazione del file odt del contenuto corrente
-    pypandoc.convert_text(v.content, format, format='md', outputfile=out_file_path)
+    pypandoc.convert_text(v.content, format, format='commonmark', outputfile=out_file_path)
 
     if v.parent and format == 'odt':
         #FASE2_1 copia di backup
@@ -301,18 +303,22 @@ class upload_restricted(JSONWebTokenAuthMixin, View):
 def upload(request, id):
     if request.method == 'POST':
         upload = request.FILES['uploaded_content']
-        print ("MIMETYPE", upload)
+        print ("MIMETYPE", upload.content_type)
+        v = Version()
+        v.title = upload.name
+        v.owner = request.user
+        v.status = 'Master'
         if id:
-            v = Version.objects.get(pk=id)
-            if v.owner != request.user:
-                return JsonResponse({"action": "rebase", "result":"Error: Can't upload. Current version does not belong to current user", "version_id": v_current.pk}, status=500)
-        else:
-            v = Version()
-            v.title = upload.name
-            v.owner = request.user
+            pv = Version.objects.get(pk=id)
+            v.parent = pv
+            v.base = pv.content
+            v.status = 'Version'
+            #if v.owner != request.user:
+            #    return JsonResponse({"action": "rebase", "result":"Error: Can't upload. Current version does not belong to current user", "version_id": v_current.pk}, status=500)
 
         if upload.content_type in ("text/markdown", "text/plain"):
-            v.content = upload.read()
+            md_text = upload.read().decode()
+            v.content = md_text
         elif upload.content_type in ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.oasis.opendocument.text"):
             if upload.content_type == "application/vnd.oasis.opendocument.text":
                 ext = 'odt'
@@ -436,7 +442,6 @@ def vtree(request, fromId, asList = False):
                     node_content["children"].append(traverse_nodes(child))
         return node_content
     q = request.GET.get('q', None)
-    print ("QQQ", q)
     if fromId:
         root_nodes = Version.objects.filter(pk=fromId).order_by("title")
     else:
@@ -456,7 +461,6 @@ def save(request):
     if request.method == 'POST':
         body = request.body.decode('utf-8')
         postData = json.loads(body)
-        print ('postData:\n',postData["pk"], file=sys.stderr)
         if postData["pk"] > 0:
             v = Version.objects.get(pk=postData["pk"])
             if v.owner != request.user:
