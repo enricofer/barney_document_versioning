@@ -318,6 +318,9 @@ def upload(request, id):
 
         if upload.content_type in ("text/markdown", "text/plain"):
             md_text = upload.read().decode()
+            #md_text = re.sub("(.)\n", "\1 ", md_text)
+            #md_text = re.sub("\n", "\n\n", md_text)
+            #print ("MDTEXT", md_text)
             v.content = md_text
         elif upload.content_type in ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.oasis.opendocument.text"):
             if upload.content_type == "application/vnd.oasis.opendocument.text":

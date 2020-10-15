@@ -29,11 +29,23 @@ def getConflicts (versione, quick=False):
         reconciliable =  reduce(lambda a,b: a and b, res_patch[1], True)
         
         for i,p in enumerate(patch):
-            diffs = [[int(a[0]),a[1]] for a in p.diffs]
+            #diffs = [[int(a[0]),a[1]] for a in p.diffs]
+
+            diff = { "id": i }
+            for k,d in enumerate(p.diffs):
+                if d[0] == 0 and k == 0:
+                    diff["before"] = d[1]
+                if d[0] == 0 and k > 0:
+                    diff["after"] = d[1]
+                if d[0] == -1:
+                    diff["delete"] = d[1]
+                if d[0] == 1:
+                    diff["add"] = d[1]
+            
             if not res_patch[1][i]:
-                failed_patches.append(diffs)
+                failed_patches.append(diff)
             else:
-                success_patches.append(diffs)
+                success_patches.append(diff)
         
         source_content = res_patch[0]
         if len(failed_patches) > 0 and not quick:
