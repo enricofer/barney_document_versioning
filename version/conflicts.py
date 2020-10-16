@@ -34,9 +34,9 @@ def getConflicts (versione, quick=False):
             diff = { "id": i }
             for k,d in enumerate(p.diffs):
                 if d[0] == 0 and k == 0:
-                    diff["before"] = d[1]
-                if d[0] == 0 and k > 0:
                     diff["after"] = d[1]
+                if d[0] == 0 and k > 0:
+                    diff["before"] = d[1]
                 if d[0] == -1:
                     diff["delete"] = d[1]
                 if d[0] == 1:
