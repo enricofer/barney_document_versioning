@@ -245,22 +245,41 @@ def download(request, format, id):
                 ziph.write(os.path.join(root,filename),os.path.join(root,filename)[len(dezipDir):])
 
     basedir = tempfile.mkdtemp()
+
+    template_file = os.path.join(os.path.dirname(__file__), "template.odt")
+    templateDezipDir = os.path.join(basedir, "template_odt")
+    with zipfile.ZipFile(template_file, 'r') as zip_ref:
+        zip_ref.extractall(templateDezipDir)
+
     md_file_path = os.path.join(basedir, "input.md")
     v = Version.objects.get(pk=id)
     with open(md_file_path,"w") as mdfile:
         mdfile.write(v.content)
-    out_file_path = os.path.join(basedir, "output." + format)
-    #FASE1 generazione del file odt del contenuto corrente
+    out_file_path_tmp = os.path.join(basedir, "output_tmp." + format)
+    #FASE0 generazione del file odt del contenuto corrente
     #pypandoc.convert_text(v.content, format, format='commonmark', outputfile=out_file_path) #
-    pypandoc.convert_file(md_file_path, format, outputfile=out_file_path)
+    pypandoc.convert_file(md_file_path, format, outputfile=out_file_path_tmp)
+
+    dezipDir = os.path.join(basedir, "raw_odt")
+    with zipfile.ZipFile(out_file_path_tmp, 'r') as zip_ref:
+        zip_ref.extractall(dezipDir)
+
+    #FASE1 sostituzione contenuto nel template
+    #substitute content.xml
+    os.remove(os.path.join(templateDezipDir,"content.xml"))
+    copyfile(os.path.join(dezipDir,"content.xml"), os.path.join(templateDezipDir,"content.xml"))
+    out_file_path = os.path.join(basedir, "output." + format)
+    dezipDir = templateDezipDir
+
+    print("basedir",basedir)
 
     if v.parent and format == 'odt':
         #FASE2_1 copia di backup
 
         #FASE2 scompattamento del file odt
-        dezipDir = os.path.join(basedir, "raw_odt")
-        with zipfile.ZipFile(out_file_path, 'r') as zip_ref:
-            zip_ref.extractall(dezipDir)
+        #dezipDir = os.path.join(basedir, "raw_odt")
+        #with zipfile.ZipFile(out_file_path, 'r') as zip_ref:
+        #    zip_ref.extractall(dezipDir)
         #FASE3 creazione directory Versions dentro directory zippata
         dezipVersionDir = os.path.join(dezipDir, "Versions")
         os.mkdir(dezipVersionDir)
@@ -289,13 +308,15 @@ def download(request, format, id):
             manifestFile.write(manifestFileNewContent)
         #FASE8 modifica stili
         os.remove(os.path.join(dezipDir,"styles.xml"))
-        copyfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"styles.xml"), os.path.join(dezipDir,"styles.xml"))
+        copyfile(os.path.join(templateDezipDir,"styles.xml"), os.path.join(dezipDir,"styles.xml"))
+        #copyfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"styles.xml"), os.path.join(dezipDir,"styles.xml"))
         #FASE8 rimozione odt v corrente
-        os.remove(out_file_path)
-        #FASE9 creazione nuovo odt da compressione directory precedenti
-        out_file = zipfile.ZipFile(out_file_path, 'w', zipfile.ZIP_STORED)
-        zipdir(dezipDir, out_file)
-        out_file.close()
+
+    #FASE9 creazione nuovo odt da compressione directory precedenti
+    #os.remove(out_file_path)
+    out_file = zipfile.ZipFile(out_file_path, 'w', zipfile.ZIP_STORED)
+    zipdir(dezipDir, out_file)
+    out_file.close()
 
     stream = open(out_file_path, "rb")
     response = HttpResponse(stream, content_type="application/vnd.openxmlformats") #application/pdf
