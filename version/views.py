@@ -263,7 +263,7 @@ def download(request, format, id):
         os.mkdir(dezipVersionDir)
         #FASE4 generazione del file odt del contenuto master
         master_file = os.path.join(dezipVersionDir, "Version1")
-        pypandoc.convert_text(v.parent.content, format, format='md', outputfile=master_file)
+        pypandoc.convert_text(v.parent.content, format, outputfile=master_file) #, format='md'
         #FASE5 creazione file versionsList.xml
         template = """<?xml version="1.0" encoding="UTF-8"?><VL:version-list xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:VL="http://openoffice.org/2001/versions-list"><VL:version-entry VL:title="Version1" VL:comment="%s" VL:creator="user" dc:date-time="%s"/></VL:version-list>"""
         versionListTxt = template % ("user", v.parent.modify_date.strftime("%Y-%m-%dT%H:%M:%S")) #2020-09-28T08:58:50
