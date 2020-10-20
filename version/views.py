@@ -246,10 +246,10 @@ def download(request, format, id):
 
     basedir = tempfile.mkdtemp()
     md_file_path = os.path.join(basedir, "input.md")
+    v = Version.objects.get(pk=id)
     with open(md_file_path,"w") as mdfile:
         mdfile.write(v.content)
     out_file_path = os.path.join(basedir, "output." + format)
-    v = Version.objects.get(pk=id)
     #FASE1 generazione del file odt del contenuto corrente
     #pypandoc.convert_text(v.content, format, format='commonmark', outputfile=out_file_path) #
     pypandoc.convert_text(md_file_path, format, outputfile=out_file_path)
