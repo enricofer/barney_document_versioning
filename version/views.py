@@ -246,17 +246,20 @@ def download(request, format, id):
 
     basedir = tempfile.mkdtemp()
 
+    #FASE0 scompattamento del template odt
     template_file = os.path.join(os.path.dirname(__file__), "template.odt")
     templateDezipDir = os.path.join(basedir, "template_odt")
     with zipfile.ZipFile(template_file, 'r') as zip_ref:
         zip_ref.extractall(templateDezipDir)
 
+    #FASE1 scrittura su disco file MD
     md_file_path = os.path.join(basedir, "input.md")
     v = Version.objects.get(pk=id)
     with open(md_file_path,"w") as mdfile:
         mdfile.write(v.content)
     out_file_path_tmp = os.path.join(basedir, "output_tmp." + format)
-    #FASE0 generazione del file odt del contenuto corrente
+
+    #FASE2 generazione del file odt del contenuto corrente
     #pypandoc.convert_text(v.content, format, format='commonmark', outputfile=out_file_path) #
     pypandoc.convert_file(md_file_path, format, outputfile=out_file_path_tmp)
 
@@ -264,9 +267,8 @@ def download(request, format, id):
     with zipfile.ZipFile(out_file_path_tmp, 'r') as zip_ref:
         zip_ref.extractall(dezipDir)
 
-    #FASE1 sostituzione contenuto nel template
-    #substitute content.xml
-    os.remove(os.path.join(templateDezipDir,"content.xml"))
+    #FASE3 sostituzione contenuto corrente nella struttura template odt scompattato
+    #os.remove(os.path.join(templateDezipDir,"content.xml"))
     copyfile(os.path.join(dezipDir,"content.xml"), os.path.join(templateDezipDir,"content.xml"))
     out_file_path = os.path.join(basedir, "output." + format)
     dezipDir = templateDezipDir
@@ -274,29 +276,24 @@ def download(request, format, id):
     print("basedir",basedir)
 
     if v.parent and format == 'odt':
-        #FASE2_1 copia di backup
 
-        #FASE2 scompattamento del file odt
-        #dezipDir = os.path.join(basedir, "raw_odt")
-        #with zipfile.ZipFile(out_file_path, 'r') as zip_ref:
-        #    zip_ref.extractall(dezipDir)
-        #FASE3 creazione directory Versions dentro directory zippata
+        #FASE4 creazione directory Versions dentro directory zippata
         dezipVersionDir = os.path.join(dezipDir, "Versions")
         os.mkdir(dezipVersionDir)
-        #FASE4 generazione del file odt del contenuto master
+        #FASE5 scrittura su disco del contenuto master e generazione del file master odt
         master_md = os.path.join(basedir, "parent.md")
         with open(master_md,"w") as mdfile:
             mdfile.write(v.parent.content)
         master_file = os.path.join(dezipVersionDir, "Version1")
         pypandoc.convert_file(master_md, format, outputfile=master_file)
-        #pypandoc.convert_text(v.parent.content, format, format='commonmark', outputfile=master_file) #
-        #FASE5 creazione file versionsList.xml
+        #pypandoc.convert_text(v.parent.content, format, format='commonmark', outputfile=master_file) # convert_text non converte bene le tables markadown
+        #FASE6 creazione file versionsList.xml
         template = """<?xml version="1.0" encoding="UTF-8"?><VL:version-list xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:VL="http://openoffice.org/2001/versions-list"><VL:version-entry VL:title="Version1" VL:comment="%s" VL:creator="user" dc:date-time="%s"/></VL:version-list>"""
         versionListTxt = template % ("user", v.parent.modify_date.strftime("%Y-%m-%dT%H:%M:%S")) #2020-09-28T08:58:50
         versionListFilePath = os.path.join(dezipDir, "VersionList.xml")
         with open(versionListFilePath,'w') as versionListFile:
             versionListFile.write(versionListTxt)
-        #FASE6 MODIFICA META-INF/manifest.xml
+        #FASE7 MODIFICA META-INF/manifest.xml
         manifestFilePath = os.path.join(dezipDir, "META-INF", "manifest.xml")
         with open(manifestFilePath,'r') as manifestFile:
             manifestFileContent = manifestFile.read()
@@ -306,11 +303,6 @@ def download(request, format, id):
         os.remove(manifestFilePath)
         with open(manifestFilePath,'w') as manifestFile:
             manifestFile.write(manifestFileNewContent)
-        #FASE8 modifica stili
-        os.remove(os.path.join(dezipDir,"styles.xml"))
-        copyfile(os.path.join(templateDezipDir,"styles.xml"), os.path.join(dezipDir,"styles.xml"))
-        #copyfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"styles.xml"), os.path.join(dezipDir,"styles.xml"))
-        #FASE8 rimozione odt v corrente
 
     #FASE9 creazione nuovo odt da compressione directory precedenti
     #os.remove(out_file_path)
