@@ -246,10 +246,13 @@ def download(request, format, id):
 
     basedir = tempfile.mkdtemp()
     md_file_path = os.path.join(basedir, "input.md")
+    with open(md_file_path,"w") as mdfile:
+        mdfile.write(v.content)
     out_file_path = os.path.join(basedir, "output." + format)
     v = Version.objects.get(pk=id)
     #FASE1 generazione del file odt del contenuto corrente
-    pypandoc.convert_text(v.content, format, outputfile=out_file_path) #, format='commonmark'
+    #pypandoc.convert_text(v.content, format, format='commonmark', outputfile=out_file_path) #
+    pypandoc.convert_text(md_file_path, format, outputfile=out_file_path)
 
     if v.parent and format == 'odt':
         #FASE2_1 copia di backup
@@ -263,7 +266,7 @@ def download(request, format, id):
         os.mkdir(dezipVersionDir)
         #FASE4 generazione del file odt del contenuto master
         master_file = os.path.join(dezipVersionDir, "Version1")
-        pypandoc.convert_text(v.parent.content, format, outputfile=master_file) #, format='md'
+        pypandoc.convert_text(v.parent.content, format, format='commonmark', outputfile=master_file) #
         #FASE5 creazione file versionsList.xml
         template = """<?xml version="1.0" encoding="UTF-8"?><VL:version-list xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:VL="http://openoffice.org/2001/versions-list"><VL:version-entry VL:title="Version1" VL:comment="%s" VL:creator="user" dc:date-time="%s"/></VL:version-list>"""
         versionListTxt = template % ("user", v.parent.modify_date.strftime("%Y-%m-%dT%H:%M:%S")) #2020-09-28T08:58:50
