@@ -249,7 +249,7 @@ def download(request, format, id):
     out_file_path = os.path.join(basedir, "output." + format)
     v = Version.objects.get(pk=id)
     #FASE1 generazione del file odt del contenuto corrente
-    pypandoc.convert_text(v.content, format, format='commonmark', outputfile=out_file_path)
+    pypandoc.convert_text(v.content, format, outputfile=out_file_path) #, format='commonmark'
 
     if v.parent and format == 'odt':
         #FASE2_1 copia di backup
