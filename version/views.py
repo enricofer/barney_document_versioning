@@ -143,7 +143,7 @@ def merge_request(request, id ):
         reconciliable =  reduce(lambda a,b: a and b, res_patch[1], True)
         if reconciliable:
             v.status = 'Merge_req'
-            v.private= False
+            v.private= True
             v.save()
             details = versionDetails(v.parent)
             return JsonResponse({"action":"merge request","version_id": v.pk })

@@ -1,5 +1,5 @@
 {
     "title": "BARNEY",
     "backend": "http://localhost:8000",
-    "link": "http://localhost:8000/version/"
+    "link": "http://localhost:3000"
 }

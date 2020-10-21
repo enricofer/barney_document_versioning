@@ -1,0 +1,6 @@
+{
+    "title": "BARNEY DOCUMENT VERSIONING SYSTEM",
+    "backend": "http://localhost:8000",
+    "link": "http://localhost:3000",
+    "lang": "en"
+}
