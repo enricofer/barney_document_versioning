@@ -1,0 +1,21 @@
+language: python
+python:
+#  - "3.4"
+  - "3.6"
+  - "3.7"
+  - "3.8"
+env:
+  - DJANGO_VERSION=1.11.29
+  - DJANGO_VERSION=2.2.16
+  - DJANGO_VERSION=3.0.10
+  - DJANGO_VERSION=3.1.2
+# command to install dependencies
+before_install:
+  - sudo apt-get --quiet update
+  - sudo pip install --upgrade setuptools
+install:
+  - pip install -r requirements.txt --use-mirrors
+  - pip install -q Django==$DJANGO_VERSION --use-mirrors
+# command to run tests
+script:
+  - python manage.py test
