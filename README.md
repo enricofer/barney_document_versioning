@@ -1,3 +1,5 @@
+![](https://api.travis-ci.com/enricofer/barney_document_versioning.svg?branch=master)
+
 # barney_document_versioning
 a django app with vue frontend for easy collaborative versioning of markdown text contents
 
