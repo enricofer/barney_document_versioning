@@ -173,7 +173,7 @@ def merge(request, id ):
             v.title = v.title + "__merged"
             v.save()
             details = versionDetails(v.parent)
-            return JsonResponse({"parent_id": v.parent.pk })
+            return JsonResponse({"action": "merge", "result": "ok", "version_id": v.pk, "parent_id": v.parent.pk })
 
     return JsonResponse({"result":"ko", "error": "the version has conflicts. Can't merge"}, status=500)
 

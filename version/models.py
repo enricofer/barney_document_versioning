@@ -48,6 +48,8 @@ class Version(models.Model):
             self.status = 'History'
             
         if self.parent: 
+            if not self.base:
+                self.base = self.parent.content
             patch_obj = dmp.patch_make(self.base, self.content)
         else:
             patch_obj = dmp.patch_make("", self.content)
