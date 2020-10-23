@@ -1,10 +1,12 @@
 from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User
 from version.models import Version
 from version import views
 from django.test.client import RequestFactory
 
 import json
+import os
 
 SAMPLE_MD = """
 # TITLE 1
@@ -273,3 +275,53 @@ class impianto(TestCase):
         response = views.conflicts(request,self.d4.pk)
         print ("Response:",response.content)
         self.assertEqual(json.loads(response.content)["conflicts"], 6)
+
+    def test_14_download_odt(self):
+        print("Method: test_download_odt")
+        request = self.factory.get('/version/odt/0/')
+        request.user = self.ut1
+        response = views.download(request,'odt',self.d2.pk)
+        #print ("Response:",response.content)
+        self.assertEqual(response.status_code, 200)
+
+    def test_16_upload_odt_new_doc(self):
+        print("Method: upload_odt_new_doc")
+        file_path = os.path.join(os.path.dirname(__file__), "template.odt")
+        with open(file_path, 'rb') as f:
+            file_upload = SimpleUploadedFile("file", f.read(), content_type="application/vnd.oasis.opendocument.text")
+            data = {
+                "uploaded_content" : file_upload
+            }
+            request = self.factory.post('/version/upload//', data=data, format='multipart')
+        request.user = self.ut1
+        response = views.upload(request,None)
+        print ("Response:",response.content)
+        self.assertEqual(response.status_code, 200)
+
+    def test_17_upload_odt_new_ver(self):
+        print("Method: upload_odt_new_doc")
+        file_path = os.path.join(os.path.dirname(__file__), "template.odt")
+        with open(file_path, 'rb') as f:
+            file_upload = SimpleUploadedFile("file", f.read(), content_type="application/vnd.oasis.opendocument.text")
+            data = {
+                "uploaded_content" : file_upload
+            }
+            request = self.factory.post('/version/upload//', data=data, format='multipart')
+        request.user = self.ut1
+        response = views.upload(request,self.d1.pk)
+        print ("Response:",response.content)
+        self.assertEqual(response.status_code, 200)
+
+    def test_18_upload_md_new_doc(self):
+        print("Method: upload_md_new_doc")
+        file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "README.md")
+        with open(file_path, 'rb') as f:
+            file_upload = SimpleUploadedFile("file", f.read(), content_type="text/markdown")
+            data = {
+                "uploaded_content" : file_upload
+            }
+            request = self.factory.post('/version/upload//', data=data, format='multipart')
+        request.user = self.ut1
+        response = views.upload(request, None)
+        print ("Response:",response.content)
+        self.assertEqual(response.status_code, 200)

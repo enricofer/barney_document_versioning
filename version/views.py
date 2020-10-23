@@ -191,13 +191,15 @@ def html2pdf (html):
     execute ('htmldoc --bodyfont HELVETICA --size A4 --right 26mm --left 26mm --top 20mm --bottom 20mm --fontsize 13 --fontspacing 1.4 --webpage -f %s %s' % ( page_pdf_ROOT, iso_html_ROOT))
     execute ('rm %s  %s' % (iso_html_ROOT, page_html_ROOT))
 
-@csrf_exempt
-def docx(request, id):
-    return download(request, 'docx', id)
-    
-@csrf_exempt
-def pdf(request, id):
-    return download(request, 'pdf', id)
+# not supported at the moment
+# @csrf_exempt
+# def docx(request, id):
+#     return download(request, 'docx', id)
+
+# supported by javascrtipt module at the moment   
+# @csrf_exempt
+# def pdf(request, id):
+#     return download(request, 'pdf', id)
 
 class odt_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
