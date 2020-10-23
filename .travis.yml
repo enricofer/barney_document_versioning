@@ -10,6 +10,7 @@ env:
 # command to install dependencies
 before_install:
   - sudo apt-get --quiet update
+  - sudo apt-get install pandoc
   - sudo pip install --upgrade setuptools
 install:
   - pip install -q Django==$DJANGO_VERSION

@@ -7,6 +7,13 @@ a django app with vue frontend for easy collaborative versioning of markdown tex
 
 ### Backend installation
 
+install pandoc package, 
+
+```
+sudo apt update
+sudo apt install pandoc
+```
+
 open a terminal Clone the repository, 
 
 ```
