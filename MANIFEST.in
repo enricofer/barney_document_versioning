@@ -11,7 +11,7 @@ include version/cors.py
 include version/diff3.py
 include version/models.py
 include version/styles.xml
-include version/test.py
 include version/tests.py
 include version/urls.py
 include version/views.py
+include version/template.odt
