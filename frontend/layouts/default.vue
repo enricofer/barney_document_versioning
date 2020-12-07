@@ -144,7 +144,12 @@ export default {
           console.log('App In Dev Mode');
     }
 
-    this.getConfig()
+    let configUrl
+    if ("init" in this.$route.query) {
+      configUrl = this.$route.query.init
+    }
+
+    this.getConfig(configUrl)
 
     this.$nuxt.$on('Authenticated', this.authenticated)
     this.$nuxt.$on('newItem', this.unselect)
@@ -160,16 +165,22 @@ export default {
 
   methods: {
 
-    async getConfig() {
-        let base = window.location.host
-        if (window.location.path != '/'){
-          base = base.substr(0,base.lastIndexOf('/'))
+    async getConfig(configUrl) {
+        let connection
+        if (configUrl) {
+          connection = {url: configUrl, baseURL: undefined}
+        } else {
+          let base = window.location.host
+          if (window.location.path != '/'){
+            base = base.substr(0,base.lastIndexOf('/'))
+          }
+          connection = {url: 'barney_config.json', baseURL: base }
         }
-        console.log("$i18n.", this.$i18n)
+        console.log("connection", connection, configUrl)
         //this.$axios({ baseURL: 'http://localhost:8000' })
         //this.$axios.$get(base + 'barney_config.json').then(response =>{
-        await this.$axios({url: 'barney_config.json', baseURL: base }).then(response =>{
-            console.log(response,this.title,this.$axios.defaults)
+        await this.$axios(connection).then(response =>{
+            console.log("init json",response,this.title,this.$axios.defaults)
             this.title = response.data.title
             this.linkTitle = response.data.link
             this.$axios.defaults.baseURL = response.data.backend
