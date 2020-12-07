@@ -14,11 +14,11 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='barney-version',
-    version='0.1.16',
+    version='0.2.0',
     packages=find_packages(),
     install_requires=[
-        'Django==1.11.20',
-        'webstack-django-jwt-auth==0.5.2',
+        'Django',
+        'webstack-django-jwt-auth',
         'django-markymark',
         'diff-match-patch',
         'django-cors-headers',
