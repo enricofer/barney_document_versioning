@@ -144,12 +144,15 @@ export default {
           console.log('App In Dev Mode');
     }
 
-    let configUrl
+   console.log("INIT",this.$route.query.init)
+
+    let configjson
     if ("init" in this.$route.query) {
-      configUrl = this.$route.query.init
+      
+      configjson = JSON.parse(this.$route.query.init)
     }
 
-    this.getConfig(configUrl)
+    this.getConfig(configjson)
 
     this.$nuxt.$on('Authenticated', this.authenticated)
     this.$nuxt.$on('newItem', this.unselect)
@@ -165,27 +168,28 @@ export default {
 
   methods: {
 
-    async getConfig(configUrl) {
+    async getConfig(config) {
         let connection
-        if (configUrl) {
-          connection = {url: configUrl, baseURL: undefined}
+        if (config) { //garbage in config detection needed
+            this.title = config.title
+            this.linkTitle = config.link
+            this.$axios.defaults.baseURL = config.backend
+            this.$i18n.setLocale(config.lang)
         } else {
           let base = window.location.host
           if (window.location.path != '/'){
             base = base.substr(0,base.lastIndexOf('/'))
           }
           connection = {url: 'barney_config.json', baseURL: base }
+          console.log("connection", connection, configUrl)
+          await this.$axios(connection).then(response =>{
+              console.log("init json",response,this.title,this.$axios.defaults)
+              this.title = response.data.title
+              this.linkTitle = response.data.link
+              this.$axios.defaults.baseURL = response.data.backend
+              this.$i18n.setLocale(response.data.lang)
+          })
         }
-        console.log("connection", connection, configUrl)
-        //this.$axios({ baseURL: 'http://localhost:8000' })
-        //this.$axios.$get(base + 'barney_config.json').then(response =>{
-        await this.$axios(connection).then(response =>{
-            console.log("init json",response,this.title,this.$axios.defaults)
-            this.title = response.data.title
-            this.linkTitle = response.data.link
-            this.$axios.defaults.baseURL = response.data.backend
-            this.$i18n.setLocale(response.data.lang)
-        })
     },
 
     authenticated(username) {

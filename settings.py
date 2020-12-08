@@ -34,6 +34,13 @@ else:
         }
     }
 
+BARNEY_CONFIG = {
+    "title": "BARNEY DOCUMENT VERSIONING SYSTEM",
+    "backend": "https://rapper.comune.padova.it",
+    "link": "https://rapper.comune.padova.it",
+    "lang": "en"
+}
+
 INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.auth',

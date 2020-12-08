@@ -16,6 +16,7 @@ from jwt_auth.mixins import JSONWebTokenAuthMixin
 from django.core.files.temp import NamedTemporaryFile
 from django.core import files
 
+import urllib.parse
 import sys
 import re
 import json
@@ -67,7 +68,11 @@ def versionDetails(v):
 
 # Create your views here.
 def frontend(request):
-    return HttpResponseRedirect("/static/version/frontend/index.html")
+    try:
+        init_param = "?init="+urllib.parse.urlencode(settings.BARNEY_CONFIG)
+    except:
+        init_param = ""
+    return HttpResponseRedirect("/static/version/frontend/index.html"+init_param)
 
 class new_version_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
