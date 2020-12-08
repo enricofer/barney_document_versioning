@@ -140,7 +140,7 @@ export default {
         password: this.password,
       }
       this.$axios.$post('/version/token-auth/', payload).then(res_login => {
-          console.log("TIMER", res_login.expiresIn )
+          console.log("TIMER", res_login)
           this.password = undefined
           this.loginPanel = false
           this.loginError = false

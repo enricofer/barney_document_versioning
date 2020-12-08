@@ -36,8 +36,10 @@ else:
 
 BARNEY_CONFIG = {
     "title": "BARNEY DOCUMENT VERSIONING SYSTEM",
-    "backend": "https://rapper.comune.padova.it",
-    "link": "https://rapper.comune.padova.it",
+    #"backend": "https://rapper.comune.padova.it",
+    #"link": "https://rapper.comune.padova.it",
+    "backend": "http://localhos:8000",
+    "link": "http://localhos:8000/version/",
     "lang": "en"
 }
 
@@ -75,7 +77,7 @@ STATICFILES_FINDERS = (
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'corsheaders.middleware.CorsPostCsrfMiddleware',
-    #'version.cors.CorsMiddleware',
+    #'version.enable_cors.CustomCorsMiddleware',
     'jwt_auth.middleware.JWTAuthenticationMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

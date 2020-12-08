@@ -2,6 +2,7 @@ from functools import reduce
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.forms.models import model_to_dict
+from django.conf import settings
 from .models import Version
 from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
 import diff_match_patch as dmp_module
@@ -69,8 +70,10 @@ def versionDetails(v):
 # Create your views here.
 def frontend(request):
     try:
-        init_param = "?init="+urllib.parse.urlencode(settings.BARNEY_CONFIG)
-    except:
+        print ("?init="+json.dumps(settings.BARNEY_CONFIG))
+        init_param = "?init="+json.dumps(settings.BARNEY_CONFIG)
+    except Exception as e:
+        print (e)
         init_param = ""
     return HttpResponseRedirect("/static/version/frontend/index.html"+init_param)
 
@@ -421,7 +424,7 @@ def getVersionObject(v):
     }    
 
 class vtree_restricted(JSONWebTokenAuthMixin, View):
-    def get(self, request, fromId, asList = False):
+    def get(self, request, fromId=None, asList = False):
         return vtree(request, fromId, asList)
 
 @csrf_exempt
