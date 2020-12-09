@@ -475,7 +475,7 @@ def vtree(request, fromId, asList = False):
                     node_content["children"].append(traverse_nodes(child))
         return node_content
     q = request.GET.get('q', None)
-    if fromId:
+    if fromId and int(fromId) > 0:
         root_nodes = Version.objects.filter(pk=fromId).order_by("title")
     else:
         root_nodes = Version.objects.filter(parent__pk=None).order_by("title")

@@ -25,8 +25,8 @@ urlpatterns = [
     url(r'^details/(\d+)/$', views.details_restricted.as_view(), name='details'),
     url(r'^delete/(\d+)/$', views.delete_restricted.as_view(), name='delete'),
     url(r'^save/$', views.save_restricted.as_view(), name='save'),
-    url(r'^tree/(?P<from_id>\d+)/$', views.vtree_restricted.as_view(), name='vtree'),
-    url(r'^list/(?P<from_id>\d+)/$', views.vlist_restricted.as_view(), name='vlist'),
+    url(r'^tree/(?P<fromId>\d+)/$', views.vtree_restricted.as_view(), name='vtree'),
+    url(r'^list/(?P<fromId>\d+)/$', views.vlist_restricted.as_view(), name='vlist'),
     url(r'^token-auth/$',jwt_auth_views.jwt_token),
     url(r'^token-refresh/$',jwt_auth_views.refresh_jwt_token),
 

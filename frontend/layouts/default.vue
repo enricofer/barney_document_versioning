@@ -230,7 +230,7 @@ export default {
       if (this.searchText != "") {
         q = "?q="+this.searchText
       }
-      await this.$axios.$get('/version/tree//'+q).then(response =>{
+      await this.$axios.$get('/version/tree/0/'+q).then(response =>{
         console.log(response)
         this.versionsMetadata = response.versions
       }).catch(response =>{

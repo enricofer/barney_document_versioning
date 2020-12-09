@@ -213,7 +213,7 @@ class impianto(TestCase):
 
     def test_07_tree_base(self):
         print("Method: test tree")
-        request = self.factory.get('/version/tree//')
+        request = self.factory.get('/version/tree/0/')
         request.user = self.ut1
         response = views.vtree(request,None)
         print ("Response:",response.content)
