@@ -88,8 +88,8 @@ export default {
 
   // Axios module configuration (https://go.nuxtjs.dev/config-axios)
   axios: {
-    baseURL: 'http://localhost:8000',
-    //baseURL: 'http://172.25.193.167:8088',
+    //baseURL: 'http://localhost:8000',
+    baseURL: 'http://10.10.21.50:8989',
     //baseURL: development ? 'http://localhost:8000' : 'http://172.25.193.167:8088'
     //proxyHeaders: false,
     //credentials: false
@@ -107,5 +107,8 @@ export default {
       }
       return config;
     }
+  },
+  server: {
+      host: "0.0.0.0"
   }
 }
