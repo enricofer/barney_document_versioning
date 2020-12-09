@@ -401,7 +401,7 @@ def delete(request, id):
     return JsonResponse({"action": "delete", "result": "ok", "deleted_version": deleted })
 
 class vlist_restricted(JSONWebTokenAuthMixin, View):
-    def get(self, request, fromId):
+    def get(self, request, fromId=None):
         return vlist(request, fromId)
 
 @csrf_exempt
