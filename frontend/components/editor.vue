@@ -603,7 +603,7 @@ export default {
      },
 
      exportAsPDF() {
-        var opt = {
+        let opt = {
           margin:       1.5,
           filename:     this.version.title+'.pdf',
           pagebreak:    {mode:['css','legacy']},
@@ -611,9 +611,10 @@ export default {
           html2canvas:  { scale: 2 },
           jsPDF:        { unit: 'cm', format: 'a4', orientation: 'portrait' }
         };
-        const html_head = '<html><head><link href="https://gist.githubusercontent.com/eirikbakke/1059266/raw/d81dba46c76169c2b253de0baed790677883c221/gistfile1.css" rel="stylesheet" type="text/css"/><style type="text/scss>">ul { li { color: black; }}</style></head><body>'
-        const html = html_head + this.$refs.toastuiEditor.invoke('getHtml') + '</body></html>'
-        var worker = html2pdf().set(opt).from( html ).save();
+
+        let print_container = document.getElementsByClassName('tui-editor-contents')[0]
+
+        var worker = html2pdf().set(opt).from( print_container ).save();
      },
 
      async exportAsMarkdown() {
