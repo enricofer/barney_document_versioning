@@ -17,4 +17,5 @@ install:
   - pip install -r requirements_travis.txt
 # command to run tests
 script:
+  - mv settings_default.py settings.py
   - python manage.py test
