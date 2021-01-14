@@ -153,8 +153,7 @@ export default {
             "title": "BARNEY DOCUMENT VERSIONING SYSTEM - DEV MODE",
             "backend": "http://localhost:8000",
             "link": "http://localhost:8000/version/",
-            "lang": "en",
-            "version": 222
+            "lang": "en"
           }
     }
 
