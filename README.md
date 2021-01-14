@@ -21,6 +21,13 @@ git clone https://github.com/enricofer/barney_document_versioning.git
 cd barney_document_versioning
 ```
 
+Creato settings file from default and edit BARNEY_CONFIG as needed, 
+
+```
+cp settings_default.py settings.py
+nano settings.py
+```
+
 then,
 
 ```
