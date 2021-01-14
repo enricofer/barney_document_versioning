@@ -5,6 +5,7 @@ env
 *.sql
 migrations/*
 db.sqlite3
+settings.py
 
 # Created by .ignore support plugin (hsz.mobi)
 ### Node template

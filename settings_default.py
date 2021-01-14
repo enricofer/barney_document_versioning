@@ -15,31 +15,17 @@ JWT_EXPIRATION_DELTA = datetime.timedelta(hours=2)
 
 CORS_ORIGIN_ALLOW_ALL = True
 
-if socket.gethostname() == "sit008798":
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'BARNEY',
-            'USER': 'dev',
-            'PASSWORD' : 'devel$',
-            'HOST' : 'localhost' ,
-            'PORT' : '',
-        },
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(os.path.dirname(__file__), 'db.sqlite3'),
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(os.path.dirname(__file__), 'db.sqlite3'),
-        }
-    }
+}
 
 BARNEY_CONFIG = {
     "title": "BARNEY DOCUMENT VERSIONING SYSTEM",
-    #"backend": "https://rapper.comune.padova.it",
-    #"link": "https://rapper.comune.padova.it",
-    "backend": "http://10.10.21.50:8989",
-    "link": "http://10.10.21.50:8989/version/",
+    "backend": "http://localhost:8000",
+    "link": "http://localhost:8000/version/",
     "lang": "en"
 }
 
@@ -52,7 +38,6 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.messages',
     'corsheaders',
-    #'markymark',
     'version',
 )
 
@@ -77,7 +62,6 @@ STATICFILES_FINDERS = (
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'corsheaders.middleware.CorsPostCsrfMiddleware',
-    #'version.enable_cors.CustomCorsMiddleware',
     'jwt_auth.middleware.JWTAuthenticationMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -85,7 +69,6 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    #'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 TEMPLATES = [
