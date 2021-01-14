@@ -59,6 +59,7 @@
       <div class="container column is-9">
         <editor />
       </div>
+      <errorDialog></errorDialog>
     </section>
   </div>
 </template>
@@ -114,7 +115,7 @@ import {DraggableTree} from 'vue-draggable-nested-tree';
 import axios from 'axios'
 
 import auth from '~/components/auth'
-import error from '~/components/error'
+import errorDialog from '~/components/errorDialog'
 import editor from '~/components/editor'
 
 export default {
@@ -134,25 +135,30 @@ export default {
 
   components: {
     Tree: DraggableTree,
-    error,
+    errorDialog,
     auth,
   },
 
   mounted () {
 
+    let configjson
     if (!window.webpackHotUpdate) {
           console.log('App In Static Mode', window.location.href)
+          if ("init" in this.$route.query) {
+            configjson = JSON.parse(this.$route.query.init)
+          }
     } else {
           console.log('App In Dev Mode');
+          configjson = {
+            "title": "BARNEY DOCUMENT VERSIONING SYSTEM - DEV MODE",
+            "backend": "http://localhost:8000",
+            "link": "http://localhost:8000/version/",
+            "lang": "en",
+            "version": 222
+          }
     }
 
-   console.log("INIT",this.$route.query.init)
-
-    let configjson
-    if ("init" in this.$route.query) {
-      
-      configjson = JSON.parse(this.$route.query.init)
-    }
+    console.log("INIT",configjson)
 
     this.getConfig(configjson)
 
@@ -224,9 +230,9 @@ export default {
       await this.$axios.$get('/version/details/' + id.toString() + "/").then(response =>{
         this.currentId = id
         self.$nuxt.$emit('versionOpened', response)
-      }).catch(response =>{
-        console.log("ERROR",response)
-        self.$nuxt.$emit('error',response["result"])
+      }).catch(err =>{
+        console.log("ERROR MESSAGE",err.response)
+        self.$nuxt.$emit('errorDialog',err.response.data["result"])
       })
     },
 
