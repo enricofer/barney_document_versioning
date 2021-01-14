@@ -68,10 +68,13 @@ def versionDetails(v):
     return vdict
 
 # Create your views here.
-def frontend(request):
+def frontend(request, version=None):
     try:
-        print ("?init="+json.dumps(settings.BARNEY_CONFIG))
-        init_param = "?init="+json.dumps(settings.BARNEY_CONFIG)
+        s = settings.BARNEY_CONFIG.copy()
+        if version:
+            s['version'] = version
+        print ("?init="+json.dumps(s))
+        init_param = "?init="+json.dumps(s)
     except Exception as e:
         print (e)
         init_param = ""
@@ -376,7 +379,11 @@ class details_restricted(JSONWebTokenAuthMixin, View):
 
 @csrf_exempt
 def details(request, id):
-    v = Version.objects.get(pk=id)
+    v = Version.objects.filter(pk=id).first()
+    if not v:
+        return JsonResponse({"action": "details", "result":"Error: unkwown version. The requested version id is unkwown", "version_id": id}, status=500)
+    if v.owner != request.user and v.private:
+        return JsonResponse({"action": "details", "result":"Error: Can't access version. The requested version is private and does not belong to current user", "version_id": v.pk}, status=500)
     det = versionDetails(v)
     det["canEdit"] = v.owner == request.user
     if v.parent:

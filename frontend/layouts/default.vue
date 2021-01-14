@@ -114,6 +114,7 @@ import {DraggableTree} from 'vue-draggable-nested-tree';
 import axios from 'axios'
 
 import auth from '~/components/auth'
+import error from '~/components/error'
 import editor from '~/components/editor'
 
 export default {
@@ -133,6 +134,7 @@ export default {
 
   components: {
     Tree: DraggableTree,
+    error,
     auth,
   },
 
@@ -160,7 +162,9 @@ export default {
     this.$nuxt.$on('openVersion', this.openVersion)
     this.fetchVersions()
     console.log(this.$route.query)
-    if ("version" in this.$route.query) {
+    if ("version" in configjson)  {
+      this.openVersion( parseInt(configjson["version"]) )
+    } else if ("version" in this.$route.query) {
       this.openVersion( parseInt(this.$route.query.version) )
     }
 
@@ -216,10 +220,13 @@ export default {
     },
 
     async openVersion(id) {
-      this.currentId = id
       console.log("openVersion", id)
       await this.$axios.$get('/version/details/' + id.toString() + "/").then(response =>{
+        this.currentId = id
         self.$nuxt.$emit('versionOpened', response)
+      }).catch(response =>{
+        console.log("ERROR",response)
+        self.$nuxt.$emit('error',response["result"])
       })
     },
 

@@ -701,7 +701,7 @@ export default {
     },
 
      permalink () {
-       this.copyToClipboard(window.location.href.replace("#","") + "?version=" + this.version.id.toString())
+       let new_url = window.location.protocol + "//" + window.location.hostname + "/version/" + this.version.id.toString() + "/"
        this.$buefy.snackbar.open( this.$t('Permanent link to the current document version copied to clipboard') )
      },
 

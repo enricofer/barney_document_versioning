@@ -11,6 +11,7 @@ from jwt_auth import views as jwt_auth_views
 
 urlpatterns = [
     url(r'^$', views.frontend, name='frontend'),
+    url(r'^(?P<version>\d+)/$', views.frontend, name='frontend'),
     url(r'^new/(\d+)/$', views.new_version_restricted.as_view(), name='new_version'),
     url(r'^conflicts/(\d+)/$', views.conflicts_restricted.as_view(), name='conflicts'),
     url(r'^rebase/$', views.rebase_restricted.as_view(), name='rebase'),
