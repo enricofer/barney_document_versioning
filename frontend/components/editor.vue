@@ -68,7 +68,7 @@
                 <b-icon :icon="active ? 'menu-up' : 'menu-down'"></b-icon>
             </b-button>
             <b-dropdown-item @click="exportAsMarkdown()" aria-role="listitem">Markdown</b-dropdown-item>
-            <b-dropdown-item @click="exportAsPDF()" aria-role="listitem">Pdf (sperimentale)</b-dropdown-item>
+            <b-dropdown-item @click="pdfPrintDialog = true" aria-role="listitem">Pdf</b-dropdown-item>
             <b-dropdown-item @click="exportAsFile()" aria-role="listitem">Odt</b-dropdown-item>
           </b-dropdown>
           &nbsp;&nbsp;
@@ -225,6 +225,38 @@
       </div>
     </b-modal>
 
+    <b-modal v-model="pdfPrintDialog" :width="420" scroll="keep">
+      <div class="card">
+        <header class="card-header">
+          <p class="card-header-title">
+            {{ $t('PDF page properties') }}
+          </p>
+        </header>
+        <div class="card-content">
+          <section>
+            <b-field :label="$t('page format')">
+                <b-select  v-model="pdfPageFormat">
+                    <option value="a4">A4</option>
+                    <option value="a3">A3</option>
+                </b-select>
+            </b-field>
+
+            <b-field :label="$t('page orientation')" >
+                <b-select v-model="pdfPageOrientation">
+                    <option value="Portrait">Portrait</option>
+                    <option value="Landscape">Landscape</option>
+                </b-select>
+            </b-field>
+          </section>
+        </div>
+
+        <footer class="card-footer">
+          <a href="#" class="card-footer-item" @click="exportAsPDF()">{{ $t('Export') }}</a>
+          <a href="#" class="card-footer-item" @click="pdfPrintDialog = false">{{ $t('Close') }}</a>
+        </footer>
+      </div>
+    </b-modal>
+
   </section>
 </template>
 
@@ -335,6 +367,9 @@ export default {
       reconcileSource: "source",
       username: undefined,
       ownername: undefined,
+      pdfPrintDialog: false,
+      pdfPageFormat: "a4",
+      pdfPageOrientation: "Portrait",
       //owner: "",
       //currentUserCanEdit: false,
       //privateVersion: true
@@ -606,14 +641,26 @@ export default {
         let opt = {
           margin:       1.5,
           filename:     this.version.title+'.pdf',
-          pagebreak:    {mode:['css','legacy']},
+          pagebreak:    {mode:['avoid-all','legacy']},
           image:        { type: 'jpeg', quality: 0.98 },
           html2canvas:  { scale: 2 },
-          jsPDF:        { unit: 'cm', format: 'a4', orientation: 'portrait' }
+          jsPDF:        { unit: 'cm', format: this.pdfPageFormat, orientation: this.pdfPageOrientation }
         };
 
-        let print_container = document.getElementsByClassName('te-ww-container')[0]
-        let print_editor = print_container.getElementsByClassName('tui-editor-contents')[0]
+        let print_editor
+        this.pdfPrintDialog = false
+        //let editorIsVisible = !this.showComparePanel && !this.showReconcilePanel && !this.version.hasChildren && !!this.version.canEdit && this.version.status != 'History'
+        //if ( editorIsVisible ) {
+        //  let print_container = document.getElementsByClassName('te-ww-container')[0]
+        //  print_editor = print_container.getElementsByClassName('tui-editor-contents')[0]
+        //} else {
+        //}
+        document.getElementsByClassName('tui-editor-contents').forEach(function (item, index) {
+          if (item.hasAttribute("contenteditable")) { 
+            print_editor = item 
+          }
+        })
+        console.log(print_editor)
 
         var worker = html2pdf().set(opt).from( print_editor ).save();
      },
