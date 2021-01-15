@@ -612,9 +612,10 @@ export default {
           jsPDF:        { unit: 'cm', format: 'a4', orientation: 'portrait' }
         };
 
-        let print_container = document.getElementsByClassName('tui-editor-contents')[0]
+        let print_container = document.getElementsByClassName('te-ww-container')[0]
+        let print_editor = print_container.getElementsByClassName('tui-editor-contents')[0]
 
-        var worker = html2pdf().set(opt).from( print_container ).save();
+        var worker = html2pdf().set(opt).from( print_editor ).save();
      },
 
      async exportAsMarkdown() {
