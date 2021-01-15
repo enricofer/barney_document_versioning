@@ -142,11 +142,9 @@ export default {
   mounted () {
 
     let configjson
+    
     if (!window.webpackHotUpdate) {
           console.log('App In Static Mode', window.location.href)
-          if ("init" in this.$route.query) {
-            configjson = JSON.parse(this.$route.query.init)
-          }
     } else {
           console.log('App In Dev Mode');
           configjson = {
@@ -155,6 +153,10 @@ export default {
             "link": "http://localhost:8000/version/",
             "lang": "en"
           }
+    }
+    
+    if ("init" in this.$route.query) {
+      configjson = JSON.parse(this.$route.query.init)
     }
 
     console.log("INIT",configjson)
