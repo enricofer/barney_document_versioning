@@ -18,6 +18,16 @@
           <p class="control">
               <b-button v-if="version.status == 'Version'" rounded class="button is-info">{{ $t('Version')}}</b-button>
           </p>
+          <condiv v-show="!!version.canEdit" @share="cucu()"></condiv>
+          <p v-show="!version.canEdit" class="control">
+              <b-button rounded class="button is-link is-light">
+                <b-icon
+                    icon="account"
+                    size="is-small">
+                </b-icon>
+                <span>{{ ownername ? ownername : 'Undefined' }}</span>
+              </b-button>
+          </p>
           <p class="control">
               <b-button type="is-primary" rounded :disabled="version.id == -1" @click="permalink()">
                 <b-icon
@@ -25,15 +35,6 @@
                     size="is-small">
                 </b-icon>
                 <span>{{ $t('Permalink') }}</span>
-              </b-button>
-          </p>
-          <p class="control">
-              <b-button rounded class="button is-link is-light">
-                <b-icon
-                    icon="account"
-                    size="is-small">
-                </b-icon>
-                <span>{{ ownername ? ownername : 'Undefined' }}</span>
               </b-button>
           </p>
       </b-field>
@@ -74,9 +75,6 @@
           &nbsp;&nbsp;
           <div class="field" v-show="!version.hasChildren">
               <b-switch v-model="autosave" :disabled="version.id == -1 || !!version.hasChildren" type="is-info">{{ $t('Autosave') }}</b-switch>
-          </div>
-          <div class="field" v-show="!!version.canEdit">
-              <b-switch v-model="version.private" v-if="version.status != 'History'" :disabled="version.id == -1" @input="save()" type="is-info">{{ version.private ? $t('Private') : $t('Public') }}</b-switch>
           </div>
       </div>
     </b-field>
@@ -304,6 +302,7 @@ import CodeDiff from 'vue-code-diff';
 import differ from '../components/differ';
 import VueI18n from 'vue-i18n';
 import { jsPDF } from "jspdf";
+import Condiv from './condiv.vue';
 
 var html2pdf = require('html2pdf.js')
 var toc = require('markdown-toc-unlazy');
@@ -317,6 +316,7 @@ export default {
     viewer: Viewer,
     CodeDiff,
     differ,
+    Condiv,
     VueI18n,
   },
 
@@ -333,7 +333,7 @@ export default {
         hasMergeReq: false,
         canEdit: true,
         canMerge: false,
-        private: true,
+        //private: true,
         parent: -1,
         base: undefined,
         conflicts: undefined,
@@ -370,6 +370,7 @@ export default {
       pdfPrintDialog: false,
       pdfPageFormat: "a4",
       pdfPageOrientation: "Portrait",
+      condiv: [],
       //owner: "",
       //currentUserCanEdit: false,
       //privateVersion: true
@@ -379,6 +380,7 @@ export default {
   mounted () {
     this.$nuxt.$on('versionOpened', this.openInEditor)
     this.$nuxt.$on('Authenticated', this.authenticated)
+    this.$nuxt.$on('share', this.shareUpdate)
     this.$refs.toastuiEditor.$on('change', this.contentChanged)
     this.addEditorTool()
   },
@@ -458,7 +460,7 @@ export default {
               hasMergeReq: false,
               canEdit: true,
               canMerge: false,
-              private: true,
+              //private: true,
               parent: -1,
               base: undefined,
               conflicts: undefined,
@@ -694,7 +696,8 @@ export default {
           pk: this.version.id,
           title: this.title,
           content: this.$refs.toastuiEditor.invoke('getMarkdown'),
-          private: this.version.private
+          condiv: this.condiv,
+          //private: this.version.private
         }
         await this.$axios.$post('/version/save/', payload).then(res => { //await
             console.log("SAVE.RES",res)
@@ -763,6 +766,12 @@ export default {
        this.deleteConfirmActive = true
      },
 
+     shareUpdate (condiv) {
+       console.log("share", condiv)
+       this.condiv = condiv
+       this.save()
+     },
+
      closeConfirm () {
        this.deleteConfirmActive = false
      },
@@ -775,6 +784,10 @@ export default {
        });
 
      },
+
+     cucu () {
+       console.log("CUCU")
+     }
 
 
    }

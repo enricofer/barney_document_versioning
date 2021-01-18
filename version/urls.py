@@ -24,10 +24,13 @@ urlpatterns = [
     url(r'^odt/(\d+)/$', views.odt_restricted.as_view(), name='odt'),
     url(r'^upload/(\d+)?/$', views.upload_restricted.as_view(), name='upload'),
     url(r'^details/(\d+)/$', views.details_restricted.as_view(), name='details'),
+    url(r'^det/(\d+)/$', views.details, name='details'),
     url(r'^delete/(\d+)/$', views.delete_restricted.as_view(), name='delete'),
     url(r'^save/$', views.save_restricted.as_view(), name='save'),
     url(r'^tree/(?P<fromId>\d+)/$', views.vtree_restricted.as_view(), name='vtree'),
     url(r'^list/(?P<fromId>\d+)/$', views.vlist_restricted.as_view(), name='vlist'),
+    url(r'^auth_objs/$', views.auth_objs_restricted.as_view(), name='auth_objs'), 
+
     url(r'^token-auth/$',jwt_auth_views.jwt_token),
     url(r'^token-refresh/$',jwt_auth_views.refresh_jwt_token),
 

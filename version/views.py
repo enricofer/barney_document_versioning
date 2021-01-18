@@ -1,6 +1,8 @@
 from functools import reduce
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.models import User, Group
+from django.core import serializers
 from django.forms.models import model_to_dict
 from django.conf import settings
 from .models import Version
@@ -39,6 +41,7 @@ def conta_rami(v):
 def versionDetails(v):
     print ("VERSION DETAIL", v.title, v.status)
     vdict = model_to_dict(v)
+    vdict["condiv"] = [{"ftag": item, "fsearch": item} for item in json.loads(v.condiv if v.condiv else '[]')]
     children = Version.objects.filter(parent__pk=v.pk)
     vdict["hasChildren"] = True if children else False
     vdict["mergeReq"] = []
@@ -154,7 +157,8 @@ def merge_request(request, id ):
         reconciliable =  reduce(lambda a,b: a and b, res_patch[1], True)
         if reconciliable:
             v.status = 'Merge_req'
-            v.private= True
+            #v.private= True
+            v.condiv = ''
             v.save()
             details = versionDetails(v.parent)
             return JsonResponse({"action":"merge request","version_id": v.pk })
@@ -373,6 +377,27 @@ def upload(request, id):
         v.save()
         return JsonResponse({"action": "upload", "result": "ok", "version_id":v.pk})
 
+def shared_with(v,user):
+    json_condiv = v.condiv if v.condiv else "[]"
+
+    if not user:
+        return json.loads(json_condiv) != []
+
+    if "@public" in json.loads(json_condiv):
+        return True
+
+    user_groups = [tag.name for tag in user.groups.all()]
+    group_tags = [tag[1:] for tag in json.loads(json_condiv) if tag[0] == "@" and tag[1:] in user_groups ]
+    if group_tags:
+        return True
+    
+    users_tags = [tag for tag in json.loads(json_condiv) if tag[0] != "@" ]
+    if user.username in users_tags:
+        return True
+    
+    return False
+
+
 class details_restricted(JSONWebTokenAuthMixin, View):
     def get(self, request, id):
         return details(request, id)
@@ -382,9 +407,11 @@ def details(request, id):
     v = Version.objects.filter(pk=id).first()
     if not v:
         return JsonResponse({"action": "details", "result":"Error: unkwown version. The requested version id is unkwown", "version_id": id}, status=500)
-    if v.owner != request.user and v.private:
-        return JsonResponse({"action": "details", "result":"Error: Can't access version. The requested version is private and does not belong to current user", "version_id": v.pk}, status=500)
+    sharedWithCurrentUser = shared_with(v,request.user)
+    if v.owner != request.user and not sharedWithCurrentUser:
+        return JsonResponse({"action": "details", "result":"Error: Can't access version. The requested version does not belong to current user and it is not shared", "version_id": v.pk}, status=500)
     det = versionDetails(v)
+    det["sharedWithCurrentUser"] = sharedWithCurrentUser
     det["canEdit"] = v.owner == request.user
     if v.parent:
         det["canMerge"] = v.parent.owner == request.user
@@ -425,7 +452,7 @@ def getVersionObject(v):
         "parent_id": v.parent.pk if v.parent else -1,
         "conflicted": v.conflicts > 0,
         "owner": v.owner.username,
-        "private": v.private,
+        #"private": v.private,
         "locked": v.locked,
         "master": False if v.parent else True
     }    
@@ -453,22 +480,25 @@ def vtree(request, fromId, asList = False):
 
     def traverse_allowed(node, allowed_flag=False):
         children = Version.objects.filter(parent__pk=node.pk)
+        sharedWithCurrentUser = shared_with(node,request.user)
         if q:
-            allowed_flag = allowed_flag or (not node.private and q in node.title)
+            allowed_flag = allowed_flag or (sharedWithCurrentUser and q in node.title) #(not node.private and q in node.title)
         else:
-            allowed_flag = allowed_flag or not node.private
+            allowed_flag = allowed_flag or sharedWithCurrentUser
         if not allowed_flag and children:
             for child in children:
                 if q:
-                    allowed_flag = allowed(child) or (not node.private and q in node.title)
+                    allowed_flag = allowed(child) or (sharedWithCurrentUser and q in node.title)
                 else:
-                    allowed_flag = allowed(child) or not node.private
+                    allowed_flag = allowed(child) or sharedWithCurrentUser
         return allowed_flag
 
     def traverse_nodes(node):
         node_content = getVersionObject(node)
         children = Version.objects.filter(parent__pk=node.pk).order_by("title")
         node_content["hasChildren"] = True if children else False
+        node_content["sharedWithCurrentUser"] = shared_with(node,request.user)
+        node_content["shared"] = shared_with(node,None)
         node_content["text"] = node_content["title"]
         node_content["draggable"] = False
         node_content["droppable"] = False
@@ -510,12 +540,27 @@ def save(request):
             v.owner = request.user
         if v.patch == "RECONCILIATED":
             return JsonResponse({ "action":"save", "result":"Error: Reconciliated Versions cannot be modified", "version_id": v.pk }, status=500)
+        print (postData['condiv'])
+        v.condiv = json.dumps(postData['condiv'])
         v.content = postData['content']
         v.title = postData['title']
-        v.private = postData['private']
+        #v.private = postData['private']
         v.save()
         return JsonResponse({"action":"save", "result":"ok", "version_id": v.pk})
     else:
         return JsonResponse({"action":"save", "result":"Error: wrong http method"}, status=500)
 
+class auth_objs_restricted(JSONWebTokenAuthMixin, View):
+    def get(self, request):
+        return auth_objs(request)
 
+@csrf_exempt
+def auth_objs(request):
+    u = User.objects.first()
+    print ( User.objects.first())
+    auth_tags = [ {"ftag": item["username"], "fsearch": "%s %s %s" % (item["username"], item["last_name"], item["first_name"] )} for item in User.objects.all().values() ]
+    for item in Group.objects.all().values():
+        auth_tags.append({"ftag": "@"+item["name"], "fsearch": "@"+item["name"]})
+    print (auth_tags)
+    return JsonResponse({"data": auth_tags})
+    

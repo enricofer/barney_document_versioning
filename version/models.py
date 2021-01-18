@@ -36,6 +36,7 @@ class Version(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
     locked = models.BooleanField(default=False)
     private = models.BooleanField(default=True)
+    condiv = models.TextField(blank=True, null=True)
 
     class Meta:
         verbose_name = 'Version'

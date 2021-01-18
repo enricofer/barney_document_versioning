@@ -47,7 +47,7 @@
                   <b-tag v-if="data.owner != username" style="flex:1;" rounded type="is-link is-light">{{ data.owner }}</b-tag>
                   <b-tag v-if="data.status == 'Merge_req'" rounded type="is-warning">{{ $t('Merging') }}</b-tag>
                   <b-tag v-if="data.status == 'History'" rounded type="is-success">{{ $t('Merged') }}</b-tag>
-                  <b-tag v-if="data.owner == username && !data.private" rounded type="is-info">{{ $t('Public') }}</b-tag>
+                  <b-tag v-if="data.owner == username && !!data.shared" rounded type="is-info">{{ $t('Shared') }}</b-tag>
                 </span>
               </span>
             </div>
@@ -245,7 +245,7 @@ export default {
         q = "?q="+this.searchText
       }
       await this.$axios.$get('/version/tree/0/'+q).then(response =>{
-        console.log(response)
+        console.log("fetchVersions",response)
         this.versionsMetadata = response.versions
       }).catch(response =>{
         console.log("ERROR",response)
