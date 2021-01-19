@@ -1,5 +1,5 @@
 <template>
-    <section>
+    <section >
         <b-field>
             <b-taginput
                 v-model="tags"
@@ -7,9 +7,10 @@
                 autocomplete
                 field="fsearch"
                 icon="label"
+                v-bind:readonly="disabled"
                 @add="saveCondiv"
                 @remove="saveCondiv"
-                :placeholder="$t('Add a share')"
+                :placeholder="!disabled ? $t('Add a share') : ''"
                 @typing="getFilteredTags">
                 <template v-slot="props">
                     {{props.option.fsearch}}
@@ -21,11 +22,11 @@
                     <b-tag
                         v-for="(tag, index) in props.tags"
                         :key="index"
-                        :type="getType(tag)"
+                        type="is-warning"
                         rounded
                         :tabstop="false"
                         ellipsis
-                        closable
+                        v-bind:closable="!disabled"
                         @close="removeTag(index, $event)">
                         {{tag.ftag}}
                     </b-tag>
@@ -34,13 +35,21 @@
         </b-field>
     </section>
 </template>
-
+<style>
+.control.has-icons-left.is-clearfix {
+    max-width: 150px !important;
+}
+</style>
 <script>
 /* eslint-disable */
 import VueI18n from 'vue-i18n';
 
 export default {
     name: 'condiv',
+
+    props: {
+        disabled: Boolean,
+    },
 
     components: {
         VueI18n,
@@ -90,8 +99,8 @@ export default {
                     return option.ftag != this.currentUser
                 })
                 this.usersAndGroups.push({
-                    ftag: "@public",
-                    fsearch: this.$t("@public Shared with all users")
+                    ftag: this.publicTag,
+                    fsearch: this.publicTag + ' ' + this.$t("Shared with all users")
                 })
             })
         },
@@ -99,7 +108,7 @@ export default {
         saveCondiv(elem) {
             const share = []
             this.tags.forEach(element => {
-                share.push (element.ftag)
+                share.push ((element.ftag == this.publicTag) ? '@public' : element.ftag)
             });
             this.$nuxt.$emit('share', share)
         },

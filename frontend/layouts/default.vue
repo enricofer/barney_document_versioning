@@ -44,10 +44,10 @@
               </b>
               <span style="display:inline-flex" :id="'item_'+data.id.toString()" :class="data.status" @click="openVersion(data.id)">
                 <span v-bind:class="{ current: data.id == currentId }">{{data.title}}
-                  <b-tag v-if="data.owner != username" style="flex:1;" rounded type="is-link is-light">{{ data.owner }}</b-tag>
-                  <b-tag v-if="data.status == 'Merge_req'" rounded type="is-warning">{{ $t('Merging') }}</b-tag>
+                  <b-tag v-if="data.owner != username" style="flex:1;" rounded type="is-link is-info">{{ data.owner }}</b-tag>
+                  <b-tag v-if="data.status == 'Merge_req'" rounded type="is-primary">{{ $t('Merging') }}</b-tag>
                   <b-tag v-if="data.status == 'History'" rounded type="is-success">{{ $t('Merged') }}</b-tag>
-                  <b-tag v-if="data.owner == username && !!data.shared" rounded type="is-info">{{ $t('Shared') }}</b-tag>
+                  <b-tag v-if="data.owner == username && !!data.shared" rounded type="is-warning">{{ $t('Shared') }}</b-tag>
                 </span>
               </span>
             </div>

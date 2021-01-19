@@ -18,16 +18,7 @@
           <p class="control">
               <b-button v-if="version.status == 'Version'" rounded class="button is-info">{{ $t('Version')}}</b-button>
           </p>
-          <condiv v-show="!!version.canEdit" @share="cucu()"></condiv>
-          <p v-show="!version.canEdit" class="control">
-              <b-button rounded class="button is-link is-light">
-                <b-icon
-                    icon="account"
-                    size="is-small">
-                </b-icon>
-                <span>{{ ownername ? ownername : 'Undefined' }}</span>
-              </b-button>
-          </p>
+          <condiv v-bind:disabled="!version.canEdit"></condiv>
           <p class="control">
               <b-button type="is-primary" rounded :disabled="version.id == -1" @click="permalink()">
                 <b-icon
@@ -333,7 +324,6 @@ export default {
         hasMergeReq: false,
         canEdit: true,
         canMerge: false,
-        //private: true,
         parent: -1,
         base: undefined,
         conflicts: undefined,
@@ -373,7 +363,6 @@ export default {
       condiv: [],
       //owner: "",
       //currentUserCanEdit: false,
-      //privateVersion: true
     };
   },
 
@@ -432,6 +421,7 @@ export default {
        if (this.close()) {
           this.version = version
           this.title = version.title
+          this.condiv = version.condiv
           this.editorText = version.content.replace('[TOC]', toc( version.content ).content)
           this.showComparePanel = false
           this.$refs.toastuiEditor.invoke('setMarkdown', this.editorText) 
@@ -460,7 +450,7 @@ export default {
               hasMergeReq: false,
               canEdit: true,
               canMerge: false,
-              //private: true,
+              condiv: '[]',
               parent: -1,
               base: undefined,
               conflicts: undefined,
@@ -475,6 +465,7 @@ export default {
           this.showComparePanel = false
           this.autosave = false
           this.reconciliable = false
+          this.condiv = '[]'
           //this.hasChildren = false
           self.$nuxt.$emit('refreshTree')
           return true
@@ -516,9 +507,10 @@ export default {
      async newVersion() {
        this.save()
        await this.$axios.$get('/version/new/' + this.version.id.toString() + "/").then(res => {
+          self.$nuxt.$emit('openVersion', res.id)
           self.$nuxt.$emit('refreshTree', res.id)
           //self.$nuxt.$emit('openVersion', res.id)
-          this.openInEditor(res)
+          //this.openInEditor(res)
        });
      },
 
@@ -643,8 +635,8 @@ export default {
         let opt = {
           margin:       1.5,
           filename:     this.version.title+'.pdf',
-          pagebreak:    {mode:['avoid-all','legacy']},
-          image:        { type: 'jpeg', quality: 0.98 },
+          pagebreak:    {mode:['avoid-all']}, //'avoid-all','legacy','css'
+          image:        { type: 'png', quality: 0.98 },
           html2canvas:  { scale: 2 },
           jsPDF:        { unit: 'cm', format: this.pdfPageFormat, orientation: this.pdfPageOrientation }
         };
@@ -697,7 +689,6 @@ export default {
           title: this.title,
           content: this.$refs.toastuiEditor.invoke('getMarkdown'),
           condiv: this.condiv,
-          //private: this.version.private
         }
         await this.$axios.$post('/version/save/', payload).then(res => { //await
             console.log("SAVE.RES",res)

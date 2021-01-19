@@ -39,7 +39,6 @@ def conta_rami(v):
     return len(rami)
 
 def versionDetails(v):
-    print ("VERSION DETAIL", v.title, v.status)
     vdict = model_to_dict(v)
     vdict["condiv"] = [{"ftag": item, "fsearch": item} for item in json.loads(v.condiv if v.condiv else '[]')]
     children = Version.objects.filter(parent__pk=v.pk)
@@ -100,6 +99,7 @@ def new_version(request, master_id):
     v.title = "ramo-%s" % str(conta_rami(documento_master) + 1)
     v.base = documento_master.content
     v.content = documento_master.content
+    v.condiv = '["%s"]' % documento_master.owner.username
     v.save()
     return details(request, v.pk)
 
@@ -157,7 +157,6 @@ def merge_request(request, id ):
         reconciliable =  reduce(lambda a,b: a and b, res_patch[1], True)
         if reconciliable:
             v.status = 'Merge_req'
-            #v.private= True
             v.condiv = ''
             v.save()
             details = versionDetails(v.parent)
@@ -290,8 +289,6 @@ def download(request, format, id):
     out_file_path = os.path.join(basedir, "output." + format)
     dezipDir = templateDezipDir
 
-    print("basedir",basedir)
-
     if v.parent and format == 'odt':
 
         #FASE4 creazione directory Versions dentro directory zippata
@@ -340,7 +337,6 @@ class upload_restricted(JSONWebTokenAuthMixin, View):
 def upload(request, id):
     if request.method == 'POST':
         upload = request.FILES['uploaded_content']
-        print ("MIMETYPE", upload.content_type)
         v = Version()
         v.title = upload.name
         v.owner = request.user
@@ -452,7 +448,6 @@ def getVersionObject(v):
         "parent_id": v.parent.pk if v.parent else -1,
         "conflicted": v.conflicts > 0,
         "owner": v.owner.username,
-        #"private": v.private,
         "locked": v.locked,
         "master": False if v.parent else True
     }    
@@ -482,7 +477,7 @@ def vtree(request, fromId, asList = False):
         children = Version.objects.filter(parent__pk=node.pk)
         sharedWithCurrentUser = shared_with(node,request.user)
         if q:
-            allowed_flag = allowed_flag or (sharedWithCurrentUser and q in node.title) #(not node.private and q in node.title)
+            allowed_flag = allowed_flag or (sharedWithCurrentUser and q in node.title) 
         else:
             allowed_flag = allowed_flag or sharedWithCurrentUser
         if not allowed_flag and children:
@@ -540,11 +535,9 @@ def save(request):
             v.owner = request.user
         if v.patch == "RECONCILIATED":
             return JsonResponse({ "action":"save", "result":"Error: Reconciliated Versions cannot be modified", "version_id": v.pk }, status=500)
-        print (postData['condiv'])
         v.condiv = json.dumps(postData['condiv'])
         v.content = postData['content']
         v.title = postData['title']
-        #v.private = postData['private']
         v.save()
         return JsonResponse({"action":"save", "result":"ok", "version_id": v.pk})
     else:
