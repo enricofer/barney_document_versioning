@@ -144,7 +144,7 @@ class impianto(TestCase):
             parent = cls.d2,
             owner = cls.ut2,
             content = SAMPLE_MD_V2,
-            private = False,
+            condiv = '[]',
         )
         cls.d4 = Version.objects.create(
             title="TEST MD 4 - conflicted",
@@ -152,6 +152,7 @@ class impianto(TestCase):
             parent = cls.d2,
             owner = cls.ut1,
             content = SAMPLE_MD_V3,
+            condiv = '["ut2"]',
         )
         print (Version.objects.all())
 
@@ -186,7 +187,7 @@ class impianto(TestCase):
 
     def test_04_save_same_user(self):
         print("Method: save same_user")
-        data = {'pk':1, "title": "save test", 'content': SAMPLE_MD_V2, 'private': True}
+        data = {'pk':1, "title": "save test", 'content': SAMPLE_MD_V2, 'condiv': '["ut2"]'}
         request = self.factory.post('/version/save/', data, content_type='application/json')
         request.user = self.ut1
         response = views.save(request)
@@ -195,7 +196,7 @@ class impianto(TestCase):
 
     def test_05_save_other_user(self):
         print("Method: save other_user")
-        data = {'pk':1, "title": "save test", 'content': SAMPLE_MD_V2, 'private': True}
+        data = {'pk':1, "title": "save test", 'content': SAMPLE_MD_V2, 'condiv': ''}
         request = self.factory.post('/version/save/', data, content_type='application/json')
         request.user = self.ut2
         response = views.save(request)
@@ -204,7 +205,7 @@ class impianto(TestCase):
 
     def test_06_save_new_same_user(self):
         print("Method: save new doc same_user")
-        data = {'pk':-1, "title": "save new test", 'content': SAMPLE_MD_V1, 'private': True}
+        data = {'pk':-1, "title": "save new test", 'content': SAMPLE_MD_V1, 'condiv': ''}
         request = self.factory.post('/version/save/', data, content_type='application/json')
         request.user = self.ut1
         response = views.save(request)
