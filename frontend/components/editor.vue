@@ -421,7 +421,7 @@ export default {
        if (this.close()) {
           this.version = version
           this.title = version.title
-          this.condiv = version.condiv
+          //this.condiv = version.condiv
           this.editorText = version.content.replace('[TOC]', toc( version.content ).content)
           this.showComparePanel = false
           this.$refs.toastuiEditor.invoke('setMarkdown', this.editorText) 
