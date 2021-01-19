@@ -99,7 +99,10 @@ def new_version(request, master_id):
     v.title = "ramo-%s" % str(conta_rami(documento_master) + 1)
     v.base = documento_master.content
     v.content = documento_master.content
-    v.condiv = '["%s"]' % documento_master.owner.username
+    if documento_master.owner != request.user:
+        v.condiv = '["%s"]' % documento_master.owner.username
+    else:
+        v.condiv = '[]'
     v.save()
     return details(request, v.pk)
 
