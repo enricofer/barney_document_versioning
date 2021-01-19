@@ -144,7 +144,7 @@ class impianto(TestCase):
             parent = cls.d2,
             owner = cls.ut2,
             content = SAMPLE_MD_V2,
-            condiv = '[]',
+            condiv = '["ut1"]',
         )
         cls.d4 = Version.objects.create(
             title="TEST MD 4 - conflicted",
